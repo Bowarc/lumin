@@ -38,7 +38,7 @@ fn tests() {
 
     let progman_handle = unsafe { winuser::FindWindowA(str_ptr(progman_name), 0 as *const i8) };
 
-    if progman_handle == 0x0 as *mut windef::HWND__ {
+    if progman_handle == std::ptr::null_mut::<windef::HWND__>() {
         println!("Couldn't find progman");
         return;
     }
@@ -70,7 +70,8 @@ fn tests() {
     // this is a bit fcked as we can't pass a mutable ref of this variable to the `EnumWindows` function, so it's basicly useless in Rust
     println!("Worker: {worker:?}");
 
-    fix_workerw_position(worker);
+    // let worker_parent = 0x10262 as windef::HWND;
+    // fix_workerw_position(worker_parent);
     enumerate_monitors()
 }
 
@@ -97,25 +98,30 @@ fn fix_workerw_position(worker: windef::HWND) {
         let h = rect.bottom - rect.top;
 
         println!("x{x}, y{y}, w{w}, h{h}");
+    } else {
+        eprintln!("Failled to get the rect of {worker:?}");
     }
 
     // ?
     unsafe { winuser::MoveWindow(worker, 0, 0, 0, 0, TRUE) };
 
     // This fixes a bug where the WorkerW is not centered on the window, therefore the video wallpaper is bad
-    unsafe { winuser::MoveWindow(worker, 0, 0, 1920, 1080, TRUE) };
+    // unsafe { winuser::MoveWindow(worker, 0, 0, 1920, 1080, TRUE) };
+
+    // pure testing
+    unsafe { winuser::MoveWindow(worker, -1280, 0, 1024, 819, TRUE) };
 
     // Reset to default size, this allows the worker to do it's normal job.
-    unsafe {
-        winuser::MoveWindow(
-            worker,
-            rect.left,
-            rect.top,
-            rect.right - rect.left,
-            rect.bottom - rect.top,
-            TRUE,
-        )
-    };
+    // unsafe {
+    //     winuser::MoveWindow(
+    //         worker,
+    //         rect.left,
+    //         rect.top,
+    //         rect.right - rect.left,
+    //         rect.bottom - rect.top,
+    //         TRUE,
+    //     )
+    // };
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     //                                            End                                            //
@@ -179,7 +185,7 @@ fn enumerate_monitors() {
 unsafe extern "system" fn process_monitor(
     hmonitor: windef::HMONITOR,
     _hdc: windef::HDC,
-    rect: *mut windef::RECT,
+    _rect: *mut windef::RECT,
     _lparam: minwindef::LPARAM,
 ) -> minwindef::BOOL {
     let mut info: winuser::MONITORINFO = std::mem::zeroed();

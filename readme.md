@@ -1,5 +1,15 @@
 This only host an idea.
 
+
+# 4)
+Today i was able to use multiple windows of the explorer to display 3 mpv video (1 each screen)
+but the problem was that the mpvs were behind the taskbar be in front of the desktop icons..
+[](assets/test1.jpg)
+
+i need to learn more about how this works..
+
+
+
 # 3)
 I found a way to use a WorkerW to display mpv behind desktop icons, got some graphical bugs but i think i understood & fixed thoses.
 
