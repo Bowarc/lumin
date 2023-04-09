@@ -71,7 +71,7 @@ fn tests() {
     println!("Worker: {worker:?}");
 
     // let worker_parent = 0x10262 as windef::HWND;
-    // fix_workerw_position(worker_parent);
+    fix_workerw_position(worker);
     enumerate_monitors()
 }
 
@@ -84,7 +84,7 @@ fn fix_workerw_position(worker: windef::HWND) {
     // (you don't have a single background per monitor anyomore,
     // you have some cropped superpositions of the backgrounds of the others screens on the main one)
 
-    // This holds the default size of the WorkerW (xywh should be something like -1280, -2, 4566, 1085)
+    // This holds the default size of the WorkerW (xywh should be something like -1280, 0, 4566, 1080)
     let mut rect = windef::RECT {
         left: 0,
         top: 0,
@@ -109,19 +109,19 @@ fn fix_workerw_position(worker: windef::HWND) {
     // unsafe { winuser::MoveWindow(worker, 0, 0, 1920, 1080, TRUE) };
 
     // pure testing
-    unsafe { winuser::MoveWindow(worker, -1280, 0, 1024, 819, TRUE) };
+    // unsafe { winuser::MoveWindow(worker, -1280, 0, 1024, 819, TRUE) };
 
     // Reset to default size, this allows the worker to do it's normal job.
-    // unsafe {
-    //     winuser::MoveWindow(
-    //         worker,
-    //         rect.left,
-    //         rect.top,
-    //         rect.right - rect.left,
-    //         rect.bottom - rect.top,
-    //         TRUE,
-    //     )
-    // };
+    unsafe {
+        winuser::MoveWindow(
+            worker,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            TRUE,
+        )
+    };
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     //                                            End                                            //

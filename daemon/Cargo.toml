@@ -1,0 +1,15 @@
+[package]
+name = "daemon"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "lumin_daemon"
+path = "src/main.rs"
+
+[dependencies]
+winapi = { version = "0.3.9", features = ["winuser"] }
+shared = {path = "../shared"}
+log = "0.4.17"
+thiserror = "1.0.40"
