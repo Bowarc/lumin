@@ -1,3 +1,5 @@
+// copied form my other project <github.com/Bowarc/WTBC>
+
 pub struct Server {
     client: Option<Client>,
     tcp_listener: std::net::TcpListener,
@@ -24,6 +26,10 @@ impl Server {
     pub fn update(&mut self) {
         if let Some(client) = &mut self.client {
             if client.update().is_err() {
+                warn!(
+                    "Client ({}) encountered an error, shutting down the socket. .",
+                    client.socket.remote_addr()
+                );
                 self.client = None
             }
         } else {
@@ -70,13 +76,13 @@ impl Client {
 
                 let response = match message {
                     shared::networking::ClientMessage::Text(txt) => {
-                        println!("Client send a text message: {txt}");
                         shared::networking::DaemonMessage::Text(txt)
                     }
                 };
                 self.socket.send(response)?;
             }
             Err(e) => {
+                // This might be the strangest lines of code that i've ever wrote
                 if if let shared::networking::SocketError::Io(ref a) = e {
                     a.kind() == std::io::ErrorKind::WouldBlock
                 } else {

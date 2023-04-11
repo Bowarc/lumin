@@ -1,18 +1,29 @@
+#[macro_use]
+extern crate log;
+
+mod request;
 mod ui;
+mod utils;
 
 fn main() {
-    // check_daemon();
+    shared::logger::init(None);
 
-    // let stream = connect_to_daemon();
+    let options = eframe::NativeOptions {
+        initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
+        resizable: false,
+        centered: true,
+        vsync: true,
+        decorated: false,
+        transparent: true,
+        // always_on_top: true,
+        default_theme: eframe::Theme::Dark,
 
-    ui::run()
-}
-
-fn check_daemon() {
-    // make sure that the daemon is running
-    todo!()
-}
-fn connect_to_daemon() -> std::net::TcpStream {
-    // may be better to return a custom socket
-    todo!()
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Lumin client",
+        options,
+        Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
+    )
+    .unwrap();
 }

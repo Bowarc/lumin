@@ -13,13 +13,16 @@ const TARGET_TPS: f32 = 10.;
 
 fn main() {
     println!("Daemon main");
+    shared::logger::init(None);
+
+    std::thread::sleep(std::time::Duration::from_secs(5));
 
     let mut s = server::Server::new();
 
     let mut last_loop_time: f32 = 0.;
     loop {
         let sleep_time = sleep_until_tps(last_loop_time);
-        println!("Loop {sleep_time:.5}s");
+        // println!("Loop {sleep_time:.5}s");
 
         let start_time = std::time::Instant::now();
 

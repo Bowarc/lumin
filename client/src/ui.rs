@@ -1,30 +1,32 @@
 use eframe::{egui, emath, epaint};
 
-pub fn run() {
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(400.0, 240.0)),
-        resizable: true,
-        centered: true,
-        vsync: true,
-        decorated: false,
-        transparent: true,
-        // always_on_top: true,
-        default_theme: eframe::Theme::Dark,
-
-        ..Default::default()
-    };
-    eframe::run_native(
-        "Lumin client",
-        options,
-        Box::new(|cc| Box::<Ui>::new(Ui::new(cc))),
-    )
-    .unwrap();
+enum State {
+    WaitingForDaemon {
+        daemon_running: bool,
+    },
+    Running {
+        socket: shared::networking::Socket<
+            shared::networking::DaemonMessage,
+            shared::networking::ClientMessage,
+        >,
+    },
+}
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("Not connected to daemon")]
+    HesDisconnected,
+    #[error("An error occured while operating the socket: {0}")]
+    SocketError(#[from] shared::networking::SocketError),
 }
 
-struct Ui {}
+pub struct Ui {
+    state: State,
+    monitors: crate::request::Request<Vec<shared::monitor::Monitor>>,
+}
 
+/// Normal functions
 impl Ui {
-    fn new(cc: &eframe::CreationContext) -> Self {
+    pub fn new(cc: &eframe::CreationContext) -> Self {
         use egui::{
             FontFamily::{Monospace, Proportional},
             FontId, TextStyle,
@@ -40,10 +42,86 @@ impl Ui {
         ]
         .into();
         cc.egui_ctx.set_style(style);
-        Self {}
+        Self {
+            state: State::WaitingForDaemon {
+                daemon_running: crate::utils::is_daemon_running(),
+            },
+            monitors: crate::request::Request::NotSent,
+        }
+    }
+}
+
+/// Application /IPC related functions
+impl Ui {
+    fn try_connect_to_daemon(&mut self) -> bool {
+        if let State::WaitingForDaemon { daemon_running } = &mut self.state {
+            *daemon_running = crate::utils::is_daemon_running();
+            if !*daemon_running {
+                crate::utils::start_daemon();
+                return false;
+            }
+
+            match crate::utils::try_connect_to_daemon() {
+                Some(socket) => {
+                    self.state = State::Running { socket };
+
+                    if let State::Running { socket } = &mut self.state {
+                        socket.send(shared::networking::ClientMessage::Text("Salut".to_string()));
+                    }
+                    return true;
+                }
+                None => return false,
+            }
+        }
+        false
+    }
+    fn try_send(&mut self, message: shared::networking::ClientMessage) -> Result<(), Error> {
+        if let State::Running { socket } = &mut self.state {
+            Ok(socket.send(message)?)
+        } else {
+            Err(Error::HesDisconnected)
+        }
     }
 
-    fn title_bar_ui(
+    /// Receives message from the daemon and send some back
+    fn update_app(&mut self) {
+        if let State::Running { socket } = &mut self.state {
+            // ask for self.monitors
+            debug!("Receiving..");
+            match socket.recv() {
+                Ok(message) => {
+                    debug!("Got a message from daemon: {message:?}");
+
+                    match message {
+                        shared::networking::DaemonMessage::Text(txt) => {}
+                    };
+                }
+                Err(e) => {
+                    if if let shared::networking::SocketError::Io(ref a) = e {
+                        a.kind() == std::io::ErrorKind::WouldBlock
+                    } else {
+                        false
+                    } {
+                        // Error kind is WouldBlock, skipping
+                    } else {
+                        error!("Error while listening for message: {e}");
+                        // Err(e)?;
+                    }
+                }
+            }
+        } else {
+            if self.try_connect_to_daemon() {
+                debug!("yay we're connected")
+            } else {
+                warn!("Could not connect to daemon")
+            }
+        }
+    }
+}
+
+/// Interface related functions
+impl Ui {
+    fn render_title_bar(
         &mut self,
         ui: &mut egui::Ui,
         frame: &mut eframe::Frame,
@@ -141,18 +219,38 @@ impl Ui {
         });
     }
 
-    fn render_window(
+    fn render_ui(
         &mut self,
         ui: &mut egui::Ui,
-        frame: &mut eframe::Frame,
-        content_rect: eframe::epaint::Rect,
+        _frame: &mut eframe::Frame,
+        _content_rect: eframe::epaint::Rect,
     ) {
         ui.label("Content");
+        if ui.button("Send Hi").clicked() {
+            // ignore error for now
+            if let Err(e) = self.try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
+            {
+                error!("{e}")
+            }
+        }
+    }
+    fn render_waiting_screen(
+        &mut self,
+        ui: &mut egui::Ui,
+        _frame: &mut eframe::Frame,
+        _content_rect: eframe::epaint::Rect,
+    ) {
+        ui.heading("Waiting for daemon to start. . .");
+        ui.label(
+            "If the windows appears to be lagging, it's normal, this part is not multi threaded.",
+        );
     }
 }
 
 impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.update_app();
+
         ctx.request_repaint();
         egui::CentralPanel::default()
             .frame(
@@ -172,7 +270,7 @@ impl eframe::App for Ui {
                     rect.max.y = rect.min.y + title_bar_height;
                     rect
                 };
-                self.title_bar_ui(ui, frame, title_bar_rect, "egui with custom frame");
+                self.render_title_bar(ui, frame, title_bar_rect, "egui with custom frame");
 
                 // rest of the window
                 let content_rect = {
@@ -182,11 +280,22 @@ impl eframe::App for Ui {
                 }
                 .shrink(4.0);
                 let mut content_ui = ui.child_ui(content_rect, *ui.layout());
-                self.render_window(ui, frame, content_rect)
+                match self.state {
+                    State::WaitingForDaemon { .. } => {
+                        self.render_waiting_screen(&mut content_ui, frame, content_rect)
+                    }
+                    State::Running { .. } => self.render_ui(&mut content_ui, frame, content_rect),
+                }
             });
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
+    }
+}
+
+impl State {
+    fn is_running(&self) -> bool {
+        matches!(self, State::Running { .. })
     }
 }
