@@ -8,6 +8,7 @@ extern crate log;
 
 mod error;
 mod server;
+mod wallpaper;
 
 const TARGET_TPS: f32 = 10.;
 
@@ -15,9 +16,18 @@ fn main() {
     println!("Daemon main");
     shared::logger::init(None);
 
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    // std::thread::sleep(std::time::Duration::from_secs(5));
 
     let mut s = server::Server::new();
+    let mut w = wallpaper::Wallpaper::new();
+
+    debug!("{:?}", w.screens);
+    let p = wallpaper::player::Player::run(
+        w.screens.get(0).unwrap().clone(),
+        "D:\\Dev\\Rust\\projects\\lumin\\research\\mpv\\shapes.mp4".into(),
+    )
+    .unwrap();
+    w.add_player(p);
 
     let mut last_loop_time: f32 = 0.;
     loop {

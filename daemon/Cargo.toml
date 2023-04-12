@@ -13,3 +13,4 @@ winapi = { version = "0.3.9", features = ["winuser"] }
 shared = {path = "../shared"}
 log = "0.4.17"
 thiserror = "1.0.40"
+tokio = "1.27.0"

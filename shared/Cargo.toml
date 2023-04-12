@@ -21,3 +21,4 @@ log = "0.4.17"
 log-panics = { version = "2.1.0", features = ["with-backtrace"]}
 serde = { version = "1.0.159", features = ["derive"] }
 thiserror = "1.0.40"
+winapi = { version = "0.3.9", features = ["winuser"] }

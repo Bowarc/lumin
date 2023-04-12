@@ -11,6 +11,7 @@ enum State {
         >,
     },
 }
+
 #[derive(thiserror::Error, Debug)]
 enum Error {
     #[error("Not connected to daemon")]
