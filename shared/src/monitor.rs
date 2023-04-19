@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Monitor {
     pub id: String,
     pub position: (i32, i32),

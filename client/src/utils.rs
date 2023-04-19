@@ -32,6 +32,7 @@ pub fn is_daemon_running() -> bool {
 
     !daemon.is_empty()
 }
+
 pub fn try_connect_to_daemon() -> Option<
     shared::networking::Socket<
         shared::networking::DaemonMessage,

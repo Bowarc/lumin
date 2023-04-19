@@ -1,28 +1,8 @@
 use eframe::{egui, emath, epaint};
 
-enum State {
-    WaitingForDaemon {
-        daemon_running: bool,
-    },
-    Running {
-        socket: shared::networking::Socket<
-            shared::networking::DaemonMessage,
-            shared::networking::ClientMessage,
-        >,
-    },
-}
-
-#[derive(thiserror::Error, Debug)]
-enum Error {
-    #[error("Not connected to daemon")]
-    HesDisconnected,
-    #[error("An error occured while operating the socket: {0}")]
-    SocketError(#[from] shared::networking::SocketError),
-}
-
 pub struct Ui {
-    state: State,
-    monitors: crate::request::Request<Vec<shared::monitor::Monitor>>,
+    app: crate::app::App,
+    daemon_connected_animation: crate::animations::StringAnimation,
 }
 
 /// Normal functions
@@ -37,85 +17,19 @@ impl Ui {
         style.text_styles = [
             (TextStyle::Heading, FontId::new(25.0, Proportional)),
             (TextStyle::Body, FontId::new(16.0, Proportional)),
-            (TextStyle::Monospace, FontId::new(12.0, Monospace)),
+            (TextStyle::Monospace, FontId::new(16.0, Monospace)),
             (TextStyle::Button, FontId::new(16.0, Proportional)),
             (TextStyle::Small, FontId::new(8.0, Proportional)),
         ]
         .into();
         cc.egui_ctx.set_style(style);
+
         Self {
-            state: State::WaitingForDaemon {
-                daemon_running: crate::utils::is_daemon_running(),
-            },
-            monitors: crate::request::Request::NotSent,
-        }
-    }
-}
-
-/// Application /IPC related functions
-impl Ui {
-    fn try_connect_to_daemon(&mut self) -> bool {
-        if let State::WaitingForDaemon { daemon_running } = &mut self.state {
-            *daemon_running = crate::utils::is_daemon_running();
-            if !*daemon_running {
-                crate::utils::start_daemon();
-                return false;
-            }
-
-            match crate::utils::try_connect_to_daemon() {
-                Some(socket) => {
-                    self.state = State::Running { socket };
-
-                    if let State::Running { socket } = &mut self.state {
-                        socket.send(shared::networking::ClientMessage::Text("Salut".to_string()));
-                    }
-                    return true;
-                }
-                None => return false,
-            }
-        }
-        false
-    }
-    fn try_send(&mut self, message: shared::networking::ClientMessage) -> Result<(), Error> {
-        if let State::Running { socket } = &mut self.state {
-            Ok(socket.send(message)?)
-        } else {
-            Err(Error::HesDisconnected)
-        }
-    }
-
-    /// Receives message from the daemon and send some back
-    fn update_app(&mut self) {
-        if let State::Running { socket } = &mut self.state {
-            // ask for self.monitors
-            debug!("Receiving..");
-            match socket.recv() {
-                Ok(message) => {
-                    debug!("Got a message from daemon: {message:?}");
-
-                    match message {
-                        shared::networking::DaemonMessage::Text(txt) => {}
-                    };
-                }
-                Err(e) => {
-                    if if let shared::networking::SocketError::Io(ref a) = e {
-                        a.kind() == std::io::ErrorKind::WouldBlock
-                    } else {
-                        false
-                    } {
-                        // Error kind is WouldBlock, skipping
-                    } else {
-                        error!("Error while listening for message: {e}");
-                        // Err(e)?;
-                    }
-                }
-            }
-        } else {
-            if self.try_connect_to_daemon() {
-                debug!("yay we're connected")
-            } else {
-                warn!("Could not connect to daemon")
-            }
+            app: crate::app::App::default(),
+            daemon_connected_animation: crate::animations::StringAnimation::new(
+                200,
+                "Connected".to_string(),
+            ),
         }
     }
 }
@@ -223,16 +137,77 @@ impl Ui {
     fn render_ui(
         &mut self,
         ui: &mut egui::Ui,
+        ctx: &egui::Context,
         _frame: &mut eframe::Frame,
         _content_rect: eframe::epaint::Rect,
     ) {
         ui.label("Content");
         if ui.button("Send Hi").clicked() {
             // ignore error for now
-            if let Err(e) = self.try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
+            if let Err(e) = self
+                .app
+                .try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
             {
                 error!("{e}")
             }
+
+            self.app
+                .dvar_cache
+                .request(shared::vars::VarId::MonitorList)
+        }
+        // ui.label(format!(
+        //     "{:#?}",
+        //     self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
+        // ));
+
+        // this part is a test, i'll clean it later
+        {
+            struct Display {
+                monitor_index: usize,
+                video_path: String,
+            }
+
+            let displays = vec![
+                Display {
+                    monitor_index: 0,
+                    video_path: String::from("salut"),
+                },
+                Display {
+                    monitor_index: 1,
+                    video_path: String::from("2nd video"),
+                },
+            ];
+            for display in displays {
+                if let Ok(monitors) = self.app.dvar_cache.get(&shared::vars::VarId::MonitorList) {
+                    let monitor = &monitors.monitor_list().unwrap()[display.monitor_index];
+                    ui.label(format!(
+                        "id {}, x{}y{}, w{}h{}",
+                        display.monitor_index,
+                        monitor.position.0,
+                        monitor.position.1,
+                        monitor.size.0,
+                        monitor.size.1
+                    ));
+                    ui.label(display.video_path.to_string());
+                    if ui.button("push").clicked() {
+                        // send a reques to the daemon
+                    }
+                }
+                ui.separator();
+            }
+
+            egui::Area::new("my_area")
+                // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
+                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
+                .show(ctx, |ui| {
+                    let target_text = self.daemon_connected_animation.get();
+
+                    ui.add(egui::Label::new(egui::WidgetText::RichText(
+                        egui::RichText::new(target_text)
+                            .color(egui::Color32::GREEN)
+                            .text_style(egui::TextStyle::Monospace),
+                    )));
+                });
         }
     }
     fn render_waiting_screen(
@@ -250,8 +225,9 @@ impl Ui {
 
 impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.update_app();
+        self.app.update();
 
+        ctx.set_debug_on_hover(true);
         ctx.request_repaint();
         egui::CentralPanel::default()
             .frame(
@@ -281,22 +257,15 @@ impl eframe::App for Ui {
                 }
                 .shrink(4.0);
                 let mut content_ui = ui.child_ui(content_rect, *ui.layout());
-                match self.state {
-                    State::WaitingForDaemon { .. } => {
-                        self.render_waiting_screen(&mut content_ui, frame, content_rect)
-                    }
-                    State::Running { .. } => self.render_ui(&mut content_ui, frame, content_rect),
+                if self.app.state.is_running() {
+                    self.render_ui(&mut content_ui, ctx, frame, content_rect)
+                } else {
+                    self.render_waiting_screen(&mut content_ui, frame, content_rect)
                 }
             });
     }
 
     fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
         egui::Rgba::TRANSPARENT.to_array() // Make sure we don't paint anything behind the rounded corners
-    }
-}
-
-impl State {
-    fn is_running(&self) -> bool {
-        matches!(self, State::Running { .. })
     }
 }

@@ -34,7 +34,6 @@ impl Player {
             .to_string()
             .replace("\\\\?\\", "");
         let pretty_path = path.as_path().display().to_string().replace("\\\\?\\", "");
-
         let args = vec![
             format!("--player-operation-mode=pseudo-gui"),
             format!("--force-window=yes"),
@@ -55,6 +54,8 @@ impl Player {
 
         // Set the position&size of the workerW to fit exacly the screen
         crate::wallpaper::utils::move_window(target_window_id, monitor.position, monitor.size);
+
+        // Still need to restore the worker on close tho ^
 
         Ok(Self {
             monitor,

@@ -32,10 +32,12 @@ pub enum SocketError {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ClientMessage {
     Text(String),
+    VarRequest(crate::vars::VarId),
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DaemonMessage {
     Text(String),
+    ValUpdate(crate::vars::VarId, crate::vars::Var),
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {

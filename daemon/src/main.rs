@@ -13,8 +13,8 @@ mod wallpaper;
 const TARGET_TPS: f32 = 10.;
 
 fn main() {
-    println!("Daemon main");
     shared::logger::init(None);
+    debug!("Daemon main");
 
     // std::thread::sleep(std::time::Duration::from_secs(5));
 
@@ -27,7 +27,7 @@ fn main() {
         "D:\\Dev\\Rust\\projects\\lumin\\research\\mpv\\shapes.mp4".into(),
     )
     .unwrap();
-    w.add_player(p);
+    //w.add_player(p);
 
     let mut last_loop_time: f32 = 0.;
     loop {
@@ -36,7 +36,7 @@ fn main() {
 
         let start_time = std::time::Instant::now();
 
-        s.update();
+        s.update(&mut w);
         last_loop_time = start_time.elapsed().as_secs_f32();
     }
 }

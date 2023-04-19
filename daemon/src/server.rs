@@ -23,9 +23,9 @@ impl Server {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, w: &mut crate::wallpaper::Wallpaper) {
         if let Some(client) = &mut self.client {
-            if client.update().is_err() {
+            if client.update(w).is_err() {
                 warn!(
                     "Client ({}) encountered an error, shutting down the socket. .",
                     client.socket.remote_addr()
@@ -69,7 +69,10 @@ impl Client {
         }
     }
 
-    pub fn update(&mut self) -> Result<(), crate::error::Error> {
+    pub fn update(
+        &mut self,
+        w: &mut crate::wallpaper::Wallpaper,
+    ) -> Result<(), crate::error::Error> {
         match self.socket.recv() {
             Ok(message) => {
                 debug!("Got a message from client: {message:?}");
@@ -78,6 +81,14 @@ impl Client {
                     shared::networking::ClientMessage::Text(txt) => {
                         shared::networking::DaemonMessage::Text(txt)
                     }
+                    shared::networking::ClientMessage::VarRequest(id) => match id {
+                        shared::vars::VarId::MonitorList => {
+                            shared::networking::DaemonMessage::ValUpdate(
+                                id,
+                                shared::vars::Var::MonitorList(w.screens.clone()),
+                            )
+                        }
+                    },
                 };
                 self.socket.send(response)?;
             }

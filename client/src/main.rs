@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate log;
 
-mod request;
+mod animations;
+mod app;
+mod dvar_cache;
+mod error;
 mod ui;
 mod utils;
 
@@ -20,6 +23,7 @@ fn main() {
 
         ..Default::default()
     };
+
     eframe::run_native(
         "Lumin client",
         options,
