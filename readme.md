@@ -22,7 +22,7 @@ I guess create stats ? that could be fun
 ## State
 
 - [x] Client - Daemon comunication (used std::net::TcpStream and the Daemon has a std::net::TcpListener)
-- [x] Client starts on startup if the deamon is not running (+ restarts it when daemon crashes)
+- [x] Client boots up daemon and connects to it on startup
 - [x] Client can build, validate and send background setup requests to the daemon
 - [x] Daemon can apply a given video as the desktop background (fixed options for now)
 - [ ] Daemon never crashes 
