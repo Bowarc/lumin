@@ -89,6 +89,19 @@ impl Client {
                             )
                         }
                     },
+                    shared::networking::ClientMessage::BackgroundSetup(monitor, content) => match w
+                        .start_player(monitor.clone(), content.clone())
+                    {
+                        Ok(new_player_id) => shared::networking::DaemonMessage::BackgroundUpdate(
+                            new_player_id,
+                            monitor,
+                            content,
+                        ),
+                        Err(e) => {
+                            error!("{e}");
+                            panic!("{e}")
+                        }
+                    },
                 };
                 self.socket.send(response)?;
             }

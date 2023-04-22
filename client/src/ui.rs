@@ -139,7 +139,7 @@ impl Ui {
         ui: &mut egui::Ui,
         ctx: &egui::Context,
         _frame: &mut eframe::Frame,
-        _content_rect: eframe::epaint::Rect,
+        content_rect: eframe::epaint::Rect,
     ) {
         ui.label("Content");
         if ui.button("Send Hi").clicked() {
@@ -155,51 +155,30 @@ impl Ui {
                 .dvar_cache
                 .request(shared::vars::VarId::MonitorList)
         }
-        // ui.label(format!(
-        //     "{:#?}",
-        //     self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
-        // ));
+        if ui.button("Add one").clicked() {
+            self.app.backgrounds.push(crate::app::Background::default());
+        }
 
-        // this part is a test, i'll clean it later
-        {
-            struct Display {
-                monitor_index: usize,
-                video_path: String,
-            }
+        // All created backgrounds
+        for index in 0..self.app.backgrounds.len() {
+            // let subui_height = 50.;
+            // let subui_rect = {
+            //     let mut rect = content_rect;
+            //     rect.min.y += subui_height * (index as f32 + 1.);
+            //     rect
+            // };
 
-            let displays = vec![
-                Display {
-                    monitor_index: 0,
-                    video_path: String::from("salut"),
-                },
-                Display {
-                    monitor_index: 1,
-                    video_path: String::from("2nd video"),
-                },
-            ];
-            for display in displays {
-                if let Ok(monitors) = self.app.dvar_cache.get(&shared::vars::VarId::MonitorList) {
-                    let monitor = &monitors.monitor_list().unwrap()[display.monitor_index];
-                    ui.label(format!(
-                        "id {}, x{}y{}, w{}h{}",
-                        display.monitor_index,
-                        monitor.position.0,
-                        monitor.position.1,
-                        monitor.size.0,
-                        monitor.size.1
-                    ));
-                    ui.label(display.video_path.to_string());
-                    if ui.button("push").clicked() {
-                        // send a reques to the daemon
-                    }
-                }
-                ui.separator();
-            }
+            // let mut subui = ui.child_ui(subui_rect, *ui.layout());
 
-            egui::Area::new("my_area")
-                // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
-                .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
-                .show(ctx, |ui| {
+            let bg = self.app.backgrounds.get_mut(index).unwrap();
+            ui.separator();
+            ui.horizontal(|ui| {
+                ui.label(format!("Background {}", index + 1));
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    // ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+
+                    // Can maybe be swapped to bg.status
                     let target_text = self.daemon_connected_animation.get();
 
                     ui.add(egui::Label::new(egui::WidgetText::RichText(
@@ -207,8 +186,89 @@ impl Ui {
                             .color(egui::Color32::GREEN)
                             .text_style(egui::TextStyle::Monospace),
                     )));
+                    // });
+
+                    ui.label("Status: ")
                 });
+            });
+
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_id_source(index)
+                    .selected_text(format!("{:?}", bg.monitor_index))
+                    .width(200.)
+                    .show_ui(ui, |ui| {
+                        if let Ok(monitors_var) =
+                            self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
+                        {
+                            let monitors = monitors_var.monitor_list().unwrap();
+                            for (m_i, monitor) in monitors.iter().enumerate() {
+                                ui.selectable_value(
+                                    &mut bg.monitor_index,
+                                    m_i,
+                                    format!(
+                                        "name{}, x{}y{}, w{}h{}",
+                                        monitor.name,
+                                        monitor.position.0,
+                                        monitor.position.1,
+                                        monitor.size.0,
+                                        monitor.size.1,
+                                    ),
+                                );
+                            }
+                        }
+                    });
+                ui.label(
+                    if let Ok(monitors_var) =
+                        self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
+                    {
+                        let selected_monitor = monitors_var
+                            .monitor_list()
+                            .unwrap()
+                            .get(bg.monitor_index)
+                            .unwrap();
+
+                        format!(
+                            "{}, {}, size: w{} h{}",
+                            selected_monitor.name,
+                            selected_monitor.direction(),
+                            selected_monitor.size.0,
+                            selected_monitor.size.1
+                        )
+                    } else {
+                        String::from("Unable to retreive monitor info from daemon")
+                    },
+                );
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Content:");
+                ui.text_edit_singleline(&mut bg.video_path);
+            });
+
+            if ui.button("Send").clicked() {
+                debug!(
+                    "Send the background with screenId: {}, content: {}",
+                    bg.monitor_index, bg.video_path
+                );
+
+                self.app.setup_bg(index).unwrap();
+            }
+
+            ui.separator();
         }
+
+        egui::Area::new("my_area")
+            // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
+            .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
+            .show(ctx, |ui| {
+                let target_text = self.daemon_connected_animation.get();
+
+                ui.add(egui::Label::new(egui::WidgetText::RichText(
+                    egui::RichText::new(target_text)
+                        .color(egui::Color32::GREEN)
+                        .text_style(egui::TextStyle::Monospace),
+                )));
+            });
     }
     fn render_waiting_screen(
         &mut self,

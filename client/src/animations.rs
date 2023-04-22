@@ -7,6 +7,7 @@ pub enum DelayState<T> {
     Done(T), //Time since done
     Running,
 }
+#[derive(Debug)]
 pub struct StringAnimation {
     interval: SystemTimeDelay,
     txt: String,
@@ -24,10 +25,10 @@ pub struct SystemTimeDelay {
 }
 
 impl StringAnimation {
-    pub fn new(interval_delay: u128, txt: String) -> Self {
+    pub fn new(interval_delay: u128, txt: impl ToString) -> Self {
         Self {
             interval: SystemTimeDelay::from(interval_delay),
-            txt,
+            txt: txt.to_string(),
             // head: 0,
             // dir: false,
             one: 0,
@@ -69,7 +70,8 @@ impl StringAnimation {
         let v_total = unsafe { self.txt.as_mut_vec() };
         let sliced = std::str::from_utf8(&v_total[self.two..self.one]).unwrap();
 
-        let sub = /* " ".repeat(txt_size - self.two) + */ sliced.to_owned()+ &" ".repeat(txt_size - self.one);
+        let empty_char = "•";
+        let sub = /* " ".repeat(txt_size - self.two) + */ empty_char.repeat(txt_size - self.one) +sliced  +&empty_char.repeat(  self.two );
 
         if let DelayState::Done(_) = self.interval.ended() {
             if self.one > txt_size - 1 {

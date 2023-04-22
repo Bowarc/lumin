@@ -33,11 +33,13 @@ pub enum SocketError {
 pub enum ClientMessage {
     Text(String),
     VarRequest(crate::vars::VarId),
+    BackgroundSetup(crate::monitor::Monitor, std::path::PathBuf), // Monitor name, Content
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DaemonMessage {
     Text(String),
     ValUpdate(crate::vars::VarId, crate::vars::Var),
+    BackgroundUpdate(crate::id::ID, crate::monitor::Monitor, std::path::PathBuf), // id, monitor, content
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {

@@ -14,10 +14,29 @@ pub enum State {
     },
 }
 
+#[derive(Debug, Default)]
+pub enum BackgroundState {
+    #[default]
+    NotSent,
+    Sent,
+    Connected {
+        id: shared::id::ID,
+        string_anim: crate::animations::StringAnimation,
+    },
+}
+
+#[derive(Default, Debug)]
+pub struct Background {
+    pub monitor_index: usize,
+    pub video_path: String,
+    pub state: BackgroundState,
+}
+
 #[derive(Default)]
 pub struct App {
     pub state: State,
     pub dvar_cache: crate::dvar_cache::DVarCache,
+    pub backgrounds: Vec<Background>,
 }
 
 impl App {
@@ -80,6 +99,44 @@ impl App {
             self.try_connect_to_daemon();
         }
     }
+    pub fn setup_bg(&mut self, background_index: usize) -> Option<()> {
+        let selected_background = self.backgrounds.get_mut(background_index).unwrap();
+
+        if self
+            .dvar_cache
+            .get(&shared::vars::VarId::MonitorList)
+            .is_err()
+        {
+            return None;
+        }
+        let content_pathbuf = std::path::PathBuf::from(selected_background.video_path.clone());
+
+        if !content_pathbuf.exists() {
+            return None;
+        }
+
+        let monitor_list = self
+            .dvar_cache
+            .get(&shared::vars::VarId::MonitorList)
+            .unwrap()
+            .monitor_list()
+            .unwrap();
+
+        let message = shared::networking::ClientMessage::BackgroundSetup(
+            monitor_list
+                .get(selected_background.monitor_index)
+                .unwrap()
+                .clone(),
+            content_pathbuf,
+        );
+
+        if let Err(send_error) = self.try_send(message) {
+            error!("{send_error}");
+        }
+
+        self.backgrounds.get_mut(background_index).unwrap().state = BackgroundState::Sent;
+        Some(())
+    }
 
     fn _update(&mut self) {
         let socket = self.state.get_socket().expect("'bout to kms");
@@ -99,6 +156,43 @@ impl App {
                         // debug!("Receiving {val:#?} for {id:?}");
                         if let Err(e) = self.dvar_cache.recv(id, val) {
                             error!("{e}");
+                        }
+                    }
+                    shared::networking::DaemonMessage::BackgroundUpdate(id, monitor, content) => {
+                        let mut background_opt: Option<&mut Background> = None;
+
+                        for bg in self
+                            .backgrounds
+                            .iter_mut()
+                            .filter(|bg| matches!(bg.state, BackgroundState::Sent))
+                        {
+                            let monitor_list = self
+                                .dvar_cache
+                                .get(&shared::vars::VarId::MonitorList)
+                                .unwrap()
+                                .monitor_list()
+                                .unwrap();
+
+                            if let Some(bg_monitor) = monitor_list.get(bg.monitor_index) {
+                                if bg_monitor.name == monitor.name {
+                                    background_opt = Some(bg)
+                                }
+                            }
+                        }
+
+                        if let Some(background) = background_opt {
+                            background.state = BackgroundState::Connected {
+                                id,
+                                string_anim: crate::animations::StringAnimation::new(
+                                    200,
+                                    "Connected",
+                                ),
+                            };
+                            background.video_path = content
+                                .as_path()
+                                .display()
+                                .to_string()
+                                .replace("\\\\?\\", "")
                         }
                     }
                 };
@@ -137,5 +231,29 @@ impl State {
         } else {
             None
         }
+    }
+}
+
+impl Background {
+    // make a function to apply the background using the socket
+    pub fn enable(
+        &mut self,
+        socket: &mut shared::networking::Socket<
+            shared::networking::DaemonMessage,
+            shared::networking::ClientMessage,
+        >,
+    ) {
+        // SEND A REQUEST TO DAEMON TO SET UP A BACKGROUD
+        // self.state =
+        //     BackgroundState::Connected(crate::animations::StringAnimation::new(200, "Connected"))
+    }
+
+    pub fn disable(
+        &mut self,
+        socket: &mut shared::networking::Socket<
+            shared::networking::DaemonMessage,
+            shared::networking::ClientMessage,
+        >,
+    ) {
     }
 }

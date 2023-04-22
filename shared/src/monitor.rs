@@ -1,6 +1,6 @@
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Monitor {
-    pub id: String,
+    pub name: String,
     pub position: (i32, i32),
     pub size: (i32, i32),
 }
@@ -8,7 +8,7 @@ pub struct Monitor {
 impl Monitor {
     pub fn from_info(name: String, info: winapi::um::winuser::MONITORINFOEXW) -> Self {
         Monitor {
-            id: name.replace(['\\', '.'], "").replace("DISPLAY", ""),
+            name: name.replace(['\\', '.'], ""), //.replace(['\\', '.'], "").replace("DISPLAY", "")
             position: (info.rcMonitor.left, info.rcMonitor.top),
             size: (
                 info.rcMonitor.right - info.rcMonitor.left,
@@ -35,6 +35,8 @@ impl Monitor {
             // Wtf ?
             output.push_str("Unknown")
         }
+
+        output.push('-');
 
         if self.position.1.abs() < ERROR_MARGIN {
             // Center y

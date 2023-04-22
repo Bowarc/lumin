@@ -22,12 +22,12 @@ fn main() {
     let mut w = wallpaper::Wallpaper::new();
 
     debug!("{:?}", w.screens);
-    let p = wallpaper::player::Player::run(
-        w.screens.get(0).unwrap().clone(),
-        "D:\\Dev\\Rust\\projects\\lumin\\research\\mpv\\shapes.mp4".into(),
-    )
-    .unwrap();
-    //w.add_player(p);
+
+    // w.start_player(
+    //     w.screens.get(0).unwrap().clone(),
+    //     "D:\\Dev\\Rust\\projects\\lumin\\research\\mpv\\shapes.mp4".into(),
+    // )
+    // .unwrap();
 
     let mut last_loop_time: f32 = 0.;
     loop {
