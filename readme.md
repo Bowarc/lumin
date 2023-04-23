@@ -26,7 +26,7 @@ I guess create stats ? that could be fun
 - [x] Client can build, validate and send background setup requests to the daemon
 - [x] Daemon can apply a given video as the desktop background (fixed options for now)
 - [x] Client can tell daemon to add and remove backgrounds
-- [x] Better ux with `[egui notify](https://github.com/ItsEthra/egui-notify)
+- [x] Better ux with [egui notify](https://github.com/ItsEthra/egui-notify)
 - [ ] Daemon informs the client of the currently playing backgrounds when client connects
 - [ ] Daemon never crashes 
 - [ ] Daemon tels the client whenever it gets into a critical or client retated error.
