@@ -32,7 +32,11 @@ I guess create stats ? that could be fun
 - [ ] Daemon tels the client whenever it gets into a critical or client retated error.
 - [ ] Daemon handles mpv process cleanly (no phantom processes)
 - [ ] Daemon logs it's actions
+- [ ] Multiple animated backgrounds
+
+https://user-images.githubusercontent.com/63136904/233821271-096f7b87-e3b1-4926-9132-21b6db4c09a2.mp4
 
 
-![](assets\demo.mp4 "")
+
+
 
