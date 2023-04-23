@@ -34,5 +34,5 @@ I guess create stats ? that could be fun
 - [ ] Daemon logs it's actions
 
 
-![](assets\demo.mp4 "")
+![](\assets\demo.mp4 "")
 
