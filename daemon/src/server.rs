@@ -102,6 +102,15 @@ impl Client {
                             panic!("{e}")
                         }
                     },
+                    shared::networking::ClientMessage::BackgroundStop(id) => {
+                        match w.stop_player(crate::wallpaper::PlayerFindMethod::PlayerID(id)) {
+                            Ok(_) => shared::networking::DaemonMessage::BackgroundStop(id),
+                            Err(e) => {
+                                error!("{e}");
+                                panic!("{e}")
+                            }
+                        }
+                    }
                 };
                 self.socket.send(response)?;
             }

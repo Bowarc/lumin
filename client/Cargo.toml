@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 eframe = "0.21.3"
+egui-notify = "0.6.0"
 log = "0.4.17"
 shared = {path = "../shared"}
 sysinfo = "0.28.4"

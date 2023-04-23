@@ -2,7 +2,7 @@
 static A_RLY_GOOD_VARIABLE_NAME: std::sync::atomic::AtomicUsize =
     std::sync::atomic::AtomicUsize::new(0);
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Clone, Copy)]
 pub struct ID(usize);
 
 impl Default for ID {

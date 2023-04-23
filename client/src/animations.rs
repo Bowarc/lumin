@@ -7,7 +7,7 @@ pub enum DelayState<T> {
     Done(T), //Time since done
     Running,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StringAnimation {
     interval: SystemTimeDelay,
     txt: String,
@@ -15,6 +15,7 @@ pub struct StringAnimation {
     // dir: bool,
     one: usize,
     two: usize,
+    color: eframe::egui::Color32,
 }
 
 /// Copied from my game Vupa
@@ -25,7 +26,7 @@ pub struct SystemTimeDelay {
 }
 
 impl StringAnimation {
-    pub fn new(interval_delay: u128, txt: impl ToString) -> Self {
+    pub fn new(interval_delay: u128, txt: impl ToString, color: eframe::egui::Color32) -> Self {
         Self {
             interval: SystemTimeDelay::from(interval_delay),
             txt: txt.to_string(),
@@ -33,59 +34,67 @@ impl StringAnimation {
             // dir: false,
             one: 0,
             two: 0,
+            color,
         }
     }
-    pub fn get(&mut self) -> String {
-        // -v this was a good idea, but if fixed the original idea, so i'll go with it for now
+    pub fn get_text(&mut self) -> String {
+        self.txt.clone()
+    }
 
-        // if let DelayState::Done(_) = self.interval.ended() {
-        //     if self.dir {
-        //         if self.head > self.txt.len() - 1 {
-        //             // self.head = 0;
-        //             self.dir = !self.dir;
-        //         } else {
-        //             self.head += 1;
-        //         }
-        //     } else {
-        //         if self.head == 0 {
-        //             // self.head = self.txt.len();
-        //             self.dir = !self.dir;
-        //         } else {
-        //             self.head -= 1;
-        //         }
-        //     }
-        //     debug!("{}", self.head);
-        //     self.interval.restart()
-        // }
-        // let txt_size = self.txt.len();
+    // pub fn get_text(&mut self) -> String {
+    //     // -v this was a good idea, but if fixed the original idea, so i'll go with it for now
 
-        // let v_total = unsafe { self.txt.as_mut_vec() };
-        // let substring = &v_total[..self.head];
+    //     // if let DelayState::Done(_) = self.interval.ended() {
+    //     //     if self.dir {
+    //     //         if self.head > self.txt.len() - 1 {
+    //     //             // self.head = 0;
+    //     //             self.dir = !self.dir;
+    //     //         } else {
+    //     //             self.head += 1;
+    //     //         }
+    //     //     } else {
+    //     //         if self.head == 0 {
+    //     //             // self.head = self.txt.len();
+    //     //             self.dir = !self.dir;
+    //     //         } else {
+    //     //             self.head -= 1;
+    //     //         }
+    //     //     }
+    //     //     debug!("{}", self.head);
+    //     //     self.interval.restart()
+    //     // }
+    //     // let txt_size = self.txt.len();
 
-        // let sub =
-        //     std::str::from_utf8(substring).unwrap().to_owned() + &"  ".repeat(txt_size - self.head);
+    //     // let v_total = unsafe { self.txt.as_mut_vec() };
+    //     // let substring = &v_total[..self.head];
 
-        let txt_size = self.txt.len();
+    //     // let sub =
+    //     //     std::str::from_utf8(substring).unwrap().to_owned() + &"  ".repeat(txt_size - self.head);
 
-        let v_total = unsafe { self.txt.as_mut_vec() };
-        let sliced = std::str::from_utf8(&v_total[self.two..self.one]).unwrap();
+    //     let txt_size = self.txt.len();
 
-        let empty_char = "•";
-        let sub = /* " ".repeat(txt_size - self.two) + */ empty_char.repeat(txt_size - self.one) +sliced  +&empty_char.repeat(  self.two );
+    //     let v_total = unsafe { self.txt.as_mut_vec() };
+    //     let sliced = std::str::from_utf8(&v_total[self.two..self.one]).unwrap();
 
-        if let DelayState::Done(_) = self.interval.ended() {
-            if self.one > txt_size - 1 {
-                self.two += 1;
-                if self.two > txt_size - 1 {
-                    self.one = 0;
-                    self.two = 0
-                }
-            } else {
-                self.one += 1
-            }
-            self.interval.restart()
-        }
-        sub
+    //     let empty_char = "•";
+    //     let sub = /* " ".repeat(txt_size - self.two) + */ empty_char.repeat(txt_size - self.one) +sliced  +&empty_char.repeat(  self.two );
+
+    //     if let DelayState::Done(_) = self.interval.ended() {
+    //         if self.one > txt_size - 1 {
+    //             self.two += 1;
+    //             if self.two > txt_size - 1 {
+    //                 self.one = 0;
+    //                 self.two = 0
+    //             }
+    //         } else {
+    //             self.one += 1
+    //         }
+    //         self.interval.restart()
+    //     }
+    //     sub
+    // }
+    pub fn get_color(&self) -> eframe::egui::Color32 {
+        self.color
     }
 }
 

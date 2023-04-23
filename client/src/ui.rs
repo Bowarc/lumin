@@ -1,8 +1,10 @@
 use eframe::{egui, emath, epaint};
 
+const TITLE_BAR_HEIGHT: f32 = 32.0;
+
 pub struct Ui {
     app: crate::app::App,
-    daemon_connected_animation: crate::animations::StringAnimation,
+    notify: egui_notify::Toasts,
 }
 
 /// Normal functions
@@ -26,10 +28,8 @@ impl Ui {
 
         Self {
             app: crate::app::App::default(),
-            daemon_connected_animation: crate::animations::StringAnimation::new(
-                200,
-                "Connected".to_string(),
-            ),
+            notify: egui_notify::Toasts::default()
+                .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
         }
     }
 }
@@ -134,64 +134,77 @@ impl Ui {
         });
     }
 
+    fn render_daemon_health(
+        &mut self,
+        _ui: &mut egui::Ui,
+        ctx: &egui::Context,
+        _frame: &mut eframe::Frame,
+        _content_rect: eframe::epaint::Rect,
+    ) {
+        egui::Area::new("my_area")
+            // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
+            .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
+            .show(ctx, |ui| {
+                ui.add(egui::Label::new(egui::WidgetText::RichText(
+                    egui::RichText::new(self.app.state.str_anim.get_text())
+                        .color(self.app.state.str_anim.get_color())
+                        .text_style(egui::TextStyle::Monospace),
+                )));
+            });
+    }
+
     fn render_ui(
         &mut self,
         ui: &mut egui::Ui,
-        ctx: &egui::Context,
+        _ctx: &egui::Context,
         _frame: &mut eframe::Frame,
-        content_rect: eframe::epaint::Rect,
+        _content_rect: eframe::epaint::Rect,
     ) {
-        ui.label("Content");
-        if ui.button("Send Hi").clicked() {
-            // ignore error for now
-            if let Err(e) = self
-                .app
-                .try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
-            {
-                error!("{e}")
-            }
+        // if ui.button("Send Hi").clicked() {
+        //     // ignore error for now
+        //     if let Err(e) = self
+        //         .app
+        //         .try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
+        //     {
+        //         error!("{e}")
+        //     }
 
-            self.app
-                .dvar_cache
-                .request(shared::vars::VarId::MonitorList)
-        }
-        if ui.button("Add one").clicked() {
-            self.app.backgrounds.push(crate::app::Background::default());
-        }
+        //     self.app
+        //         .dvar_cache
+        //         .request(shared::vars::VarId::MonitorList)
+        // }
+        // let painter = ui.painter();
+
+        ui.vertical_centered(|ui| {
+            if ui
+                .button(egui::RichText::new("New background").size(20.))
+                .clicked()
+            {
+                self.app.backgrounds.push(crate::app::Background::default());
+            }
+        });
 
         // All created backgrounds
+        let mut todelete = vec![];
+
         for index in 0..self.app.backgrounds.len() {
-            // let subui_height = 50.;
-            // let subui_rect = {
-            //     let mut rect = content_rect;
-            //     rect.min.y += subui_height * (index as f32 + 1.);
-            //     rect
-            // };
-
-            // let mut subui = ui.child_ui(subui_rect, *ui.layout());
-
             let bg = self.app.backgrounds.get_mut(index).unwrap();
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label(format!("Background {}", index + 1));
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                    // ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
-
                     // Can maybe be swapped to bg.status
-                    let target_text = self.daemon_connected_animation.get();
 
                     ui.add(egui::Label::new(egui::WidgetText::RichText(
-                        egui::RichText::new(target_text)
-                            .color(egui::Color32::GREEN)
+                        egui::RichText::new(bg.state.str_anim.get_text())
+                            .color(bg.state.str_anim.get_color())
                             .text_style(egui::TextStyle::Monospace),
                     )));
-                    // });
 
                     ui.label("Status: ")
                 });
             });
-
             ui.horizontal(|ui| {
                 egui::ComboBox::from_id_source(index)
                     .selected_text(format!("{:?}", bg.monitor_index))
@@ -235,7 +248,9 @@ impl Ui {
                             selected_monitor.size.1
                         )
                     } else {
-                        String::from("Unable to retreive monitor info from daemon")
+                        let txt = "Unable to retreive monitor info from daemon";
+                        // self.notify.warning(txt);
+                        String::from(txt)
                     },
                 );
             });
@@ -245,41 +260,37 @@ impl Ui {
                 ui.text_edit_singleline(&mut bg.video_path);
             });
 
-            if ui.button("Send").clicked() {
-                debug!(
-                    "Send the background with screenId: {}, content: {}",
-                    bg.monitor_index, bg.video_path
-                );
+            ui.horizontal(|ui|{
+                if ui.button("Send").clicked() {
+                    match self.app.setup_bg(index){
+                            Ok((monitor, path)) => self.notify.success(format!(
+                                "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {path:?}",
+                                path = path.as_path().display().to_string().replace("\\\\?\\", "")
+                            )),
+                            Err(e) => self.notify.error(format!("Could not send request\n{e}")),
+                        };
+                }
 
-                self.app.setup_bg(index).unwrap();
-            }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    if ui.button("delete").clicked() {
+                        todelete.push(index)
+                    }
+                });
+            });
 
             ui.separator();
         }
 
-        egui::Area::new("my_area")
-            // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
-            .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
-            .show(ctx, |ui| {
-                let target_text = self.daemon_connected_animation.get();
-
-                ui.add(egui::Label::new(egui::WidgetText::RichText(
-                    egui::RichText::new(target_text)
-                        .color(egui::Color32::GREEN)
-                        .text_style(egui::TextStyle::Monospace),
-                )));
+        // A bit ugly but i think it's the best way
+        {
+            todelete.iter().for_each(|index| {
+                if let Err(e) = self.app.remove_bg(*index) {
+                    self.notify
+                        .warning(e)
+                        .set_duration(Some(std::time::Duration::from_secs(4)));
+                };
             });
-    }
-    fn render_waiting_screen(
-        &mut self,
-        ui: &mut egui::Ui,
-        _frame: &mut eframe::Frame,
-        _content_rect: eframe::epaint::Rect,
-    ) {
-        ui.heading("Waiting for daemon to start. . .");
-        ui.label(
-            "If the windows appears to be lagging, it's normal, this part is not multi threaded.",
-        );
+        }
     }
 }
 
@@ -301,13 +312,13 @@ impl eframe::App for Ui {
                 let app_rect = ui.max_rect();
 
                 // draw the title bar
-                let title_bar_height = 32.0;
+
                 let title_bar_rect = {
                     let mut rect = app_rect;
-                    rect.max.y = rect.min.y + title_bar_height;
+                    rect.max.y = rect.min.y + TITLE_BAR_HEIGHT;
                     rect
                 };
-                self.render_title_bar(ui, frame, title_bar_rect, "egui with custom frame");
+                self.render_title_bar(ui, frame, title_bar_rect, "Lumin client");
 
                 // rest of the window
                 let content_rect = {
@@ -317,11 +328,13 @@ impl eframe::App for Ui {
                 }
                 .shrink(4.0);
                 let mut content_ui = ui.child_ui(content_rect, *ui.layout());
-                if self.app.state.is_running() {
-                    self.render_ui(&mut content_ui, ctx, frame, content_rect)
-                } else {
-                    self.render_waiting_screen(&mut content_ui, frame, content_rect)
-                }
+                // if self.app.state.is_running() {
+                self.render_ui(&mut content_ui, ctx, frame, content_rect);
+                self.render_daemon_health(ui, ctx, frame, content_rect);
+                self.notify.show(ctx)
+                // } else {
+                //     self.render_waiting_screen(&mut content_ui, frame, content_rect)
+                // }
             });
     }
 

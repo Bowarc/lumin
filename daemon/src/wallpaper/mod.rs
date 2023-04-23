@@ -25,8 +25,9 @@ fn mpv_dir() -> std::path::PathBuf {
 
 #[derive(Debug)]
 pub enum PlayerFindMethod {
-    PlayerIndex(usize),  // Index of the player in the Wallpaper::player list
-    MonitorName(String), // Name of the monitor struct it's playing on.
+    PlayerID(shared::id::ID),        // ID of the player
+    PlayerIndex(usize),              // Index of the player in the Wallpaper::player list
+    MonitorName(String),             // Name of the monitor struct it's playing on.
     ContentPath(std::path::PathBuf), // Any player tha plays the path of the given media
 }
 
@@ -98,6 +99,25 @@ impl Wallpaper {
     }
     pub fn stop_player(&mut self, method: PlayerFindMethod) -> Result<(), crate::error::Error> {
         let player_index = match method {
+            PlayerFindMethod::PlayerID(id) => {
+                let players = self
+                    .players
+                    .iter()
+                    .enumerate()
+                    .filter(|(_i, p)| p.id == id)
+                    .collect::<Vec<(usize, &player::Player)>>();
+
+                if players.is_empty() {
+                    return Err(crate::error::WallpaperError::PlayerDontExist(method).into());
+                } else if players.len() > 1 {
+                    warn!(
+                        "Multiple player has been found with method: {method:?}, players: {:?}",
+                        self.players
+                    );
+                }
+
+                players.get(0).unwrap().0
+            }
             PlayerFindMethod::PlayerIndex(index) => {
                 if self.players.get(index).is_some() {
                     // self.players.swap_remove(index);
