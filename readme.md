@@ -34,7 +34,7 @@ I guess create stats ? that could be fun
 - [ ] Daemon logs it's actions
 - [ ] Multiple animated backgrounds
 
-https://user-images.githubusercontent.com/63136904/233821271-096f7b87-e3b1-4926-9132-21b6db4c09a2.mp4
+https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-8f36-633233083b74.mp4
 
 
 
