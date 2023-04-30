@@ -19,7 +19,7 @@ I guess create stats ? that could be fun
 
 # Animated desktop background changer
 
-## State
+## State - Working but not finished
 
 - [x] Client - Daemon comunication (used std::net::TcpStream and the Daemon has a std::net::TcpListener)
 - [x] Client boots up daemon and connects to it on startup
@@ -28,8 +28,8 @@ I guess create stats ? that could be fun
 - [x] Client can tell daemon to add and remove backgrounds
 - [x] Better ux with [egui notify](https://github.com/ItsEthra/egui-notify)
 - [ ] Daemon informs the client of the currently playing backgrounds when client connects
-- [ ] Daemon never crashes 
-- [ ] Daemon tels the client whenever it gets into a critical or client retated error.
+- [x] Daemon never crashes (well, sort of.. due to how explorer and windows works, the daemon has to restart in some cases, so i make the client somewhat smart with daemon crashes) 
+- [ ] Daemon tells the client whenever it gets into a critical or client retated error.
 - [ ] Daemon handles mpv process cleanly (no phantom processes)
 - [ ] Daemon logs it's actions
 - [ ] Multiple animated backgrounds

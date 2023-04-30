@@ -1,8 +1,3 @@
-// pub fn get_screens() -> Vec<shared::monitor::Monitor> {
-//     error!("This function is not done yet");
-//     Vec::new()
-// }
-
 use std::{ffi::OsString, mem, os::windows::ffi::OsStringExt};
 
 use winapi::{
@@ -27,6 +22,24 @@ pub fn get_screens() -> Vec<shared::monitor::Monitor> {
     output
 }
 
+pub fn get_workerw_id_loop(max_loops: usize) -> Option<windef::HWND> {
+    let mut x = 0;
+    loop {
+        debug!("Loop {x}");
+        if let Some(w) = get_workerw_id() {
+            return Some(w);
+        }
+        // std::thread::sleep(std::time::Duration::from_secs_f32(0.5));
+        x += 1;
+        if x == max_loops {
+            break;
+        }
+    }
+    error!("WorkerW could not be found, tried {max_loops} times");
+
+    None
+}
+
 pub fn get_workerw_id() -> Option<windef::HWND> {
     // heavily inspired by https://github.com/Francesco149/weebp
 
@@ -46,27 +59,27 @@ pub fn get_workerw_id() -> Option<windef::HWND> {
 
     // https://mpv.io/manual/stable/
 
-    debug!("Scanning for progman");
-    let progman_name = "progman";
+    debug!("Scanning for workerW");
 
     let progman_handle =
-        unsafe { winuser::FindWindowA(str_ptr(progman_name), std::ptr::null::<i8>()) };
+        unsafe { winuser::FindWindowA(str_ptr("progman"), std::ptr::null::<i8>()) };
 
     if progman_handle.is_null() {
-        error!("Couldn't find progman");
+        debug!("Couldn't find progman");
         return None;
     }
 
-    debug!("Found progman at address: {progman_handle:?}");
-
     // this is basically all the magic. it's an undocumented window message that
     // forces windows to spawn a window with class "WorkerW" behind deskicons
+
+    // after some testing, this might be useless
     unsafe {
         winuser::SendMessageA(progman_handle, 0x052C, 0xD, 0);
         winuser::SendMessageA(progman_handle, 0x052C, 0xD, 1);
     }
 
-    debug!("Checking for wallpaper..");
+    // Eliminate the possiblility of a race condition with explorer.exe potentially caused by SendMessageA
+    std::thread::sleep(std::time::Duration::from_secs_f32(0.25));
 
     let mut worker = std::ptr::null_mut::<windef::HWND__>();
 
@@ -76,17 +89,33 @@ pub fn get_workerw_id() -> Option<windef::HWND> {
             &mut worker as *mut _ as minwindef::LPARAM,
         )
     };
+
     if worker.is_null() {
-        error!("WorkerW could not be found");
-        return None;
+        // warn!("WorkerW could not be found, tried {MAX_RESETS} times");
+        // warn!("WorkerW could not be found");
+        // return None;
+
+        warn!("Couldn't spawn WorkerW window, trying old method");
+
+        if !worker.is_null() {
+            unsafe {
+                //
+                winuser::SendMessageA(progman_handle, 0x052C, 0, 0);
+
+                // log1("checking for wallpaper");
+
+                winuser::EnumWindows(
+                    Some(find_worker),
+                    &mut worker as *mut _ as minwindef::LPARAM,
+                );
+            }
+        }
     }
 
-    debug!("Worker: {worker:?}");
-
-    // this is kinda ugly, if you have a better solution please dm me (or make a pull request)
-    // let woker_id = format!("{worker:?}").parse::<i32>().ok()?;
-
-    // let worker_id = worker as i32;
+    if worker.is_null() {
+        warn!("WorkerW could not be found");
+        return None;
+    }
 
     Some(worker)
 }
@@ -143,7 +172,6 @@ extern "system" fn find_worker(wnd: *mut windef::HWND__, lp: minwindef::LPARAM) 
 
     if !(*pworker).is_null() {
         debug!("Wallpaper is {pworker:?}\nIts parent is {wnd:?}");
-        // dbg!(pworker, wnd);
         return minwindef::FALSE;
     }
 

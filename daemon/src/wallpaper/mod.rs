@@ -1,10 +1,10 @@
 pub mod player;
-mod utils;
+// mod utils;
 
 fn mpv_dir() -> std::path::PathBuf {
     let lumin_root = {
         let mut o = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        o.pop(); //remove the /daemon
+        o.pop(); //remove the `/daemon`
         o
     };
 
@@ -16,7 +16,6 @@ fn mpv_dir() -> std::path::PathBuf {
             .to_string()
             .replace("\\\\?\\", "")
     ));
-    // o.pop();
     debug!("{o:?}");
 
     assert!(o.exists());
@@ -33,16 +32,18 @@ pub enum PlayerFindMethod {
 
 pub struct Wallpaper {
     pub screens: Vec<shared::monitor::Monitor>,
-    pub players: Vec<player::Player>, // currently only supports one player
+    pub players: Vec<player::Player>, // currently supports only one player
+    pub wm: Box<dyn crate::window_manager::WindowManager>,
 }
 
 impl Wallpaper {
-    pub fn new() -> Self {
-        let screens = utils::get_screens();
+    pub fn new<WM: crate::window_manager::WindowManager + 'static>(wm: WM) -> Self {
+        let screens = wm.get_screen_list();
 
         Self {
             screens,
             players: Vec::new(),
+            wm: Box::new(wm),
         }
     }
     pub fn start_player(
@@ -56,9 +57,16 @@ impl Wallpaper {
             ))
             .into());
         }
-        let target_window_id = crate::wallpaper::utils::get_workerw_id().ok_or(
-            crate::error::PlayerError::Verification("Could not get the workerW's id".to_string()),
-        )?;
+        let target_window_id =
+            self.wm
+                .get_bg_window_checked()
+                .ok_or(crate::error::PlayerError::Verification(
+                    "Could not get the window id from the window manager".to_string(),
+                ))?;
+
+        // let target_window_id = crate::wallpaper::utils::get_workerw_id().ok_or(
+        //     crate::error::PlayerError::Verification("Could not get the workerW's id".to_string()),
+        // )?;
 
         let pretty_mpv_path = crate::wallpaper::mpv_dir()
             .as_path()
@@ -86,13 +94,14 @@ impl Wallpaper {
             .map_err(crate::error::PlayerError::from)?;
 
         // Set the position&size of the workerW to fit exacly the screen
-        crate::wallpaper::utils::move_window(target_window_id, monitor.position, monitor.size);
+        self.wm.prepare_for_monitor(monitor.clone());
+        // crate::wallpaper::utils::move_window(target_window_id, monitor.position, monitor.size);
 
         // Still need to restore the worker on close tho ^
 
         let new_player = player::Player::new(monitor, target_window_id, process, path);
 
-        let new_player_id = new_player.id.clone();
+        let new_player_id = new_player.id;
 
         self.players.push(new_player);
         Ok(new_player_id)
@@ -188,5 +197,23 @@ impl Wallpaper {
         debug!("Successfully killed player with method: {method:?}");
 
         Ok(())
+    }
+    pub fn clean_player(&mut self) {
+        let mut todelete = vec![];
+
+        for (i, p) in self.players.iter_mut().enumerate() {
+            if p.is_dead() {
+                debug!("Removing player ({:?})", p.id);
+                todelete.push(i)
+            }
+        }
+
+        let mut indx = 0;
+        self.players.retain(|_p| {
+            indx += 1;
+            !todelete.contains(&(indx - 1))
+        });
+
+        debug!("{:?}", self.players)
     }
 }

@@ -145,8 +145,21 @@ impl Ui {
             // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
             .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
             .show(ctx, |ui| {
+                let mut text = self.app.state.str_anim.get_text();
+
+                if let crate::app::AppState::Running {
+                    socket: _,
+                    frame_time,
+                    target_tps,
+                } = &self.app.state.inner
+                {
+                    text = format!("{}\n{:.5}ms", text, frame_time)
+                }
+
+                // if let
+                // let text = format!("{} - {}ms", )
                 ui.add(egui::Label::new(egui::WidgetText::RichText(
-                    egui::RichText::new(self.app.state.str_anim.get_text())
+                    egui::RichText::new(text)
                         .color(self.app.state.str_anim.get_color())
                         .text_style(egui::TextStyle::Monospace),
                 )));
@@ -160,21 +173,6 @@ impl Ui {
         _frame: &mut eframe::Frame,
         _content_rect: eframe::epaint::Rect,
     ) {
-        // if ui.button("Send Hi").clicked() {
-        //     // ignore error for now
-        //     if let Err(e) = self
-        //         .app
-        //         .try_send(shared::networking::ClientMessage::Text("Hi".to_string()))
-        //     {
-        //         error!("{e}")
-        //     }
-
-        //     self.app
-        //         .dvar_cache
-        //         .request(shared::vars::VarId::MonitorList)
-        // }
-        // let painter = ui.painter();
-
         ui.vertical_centered(|ui| {
             if ui
                 .button(egui::RichText::new("New background").size(20.))

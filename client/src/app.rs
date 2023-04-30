@@ -11,6 +11,8 @@ pub enum AppState {
             shared::networking::DaemonMessage,
             shared::networking::ClientMessage,
         >,
+        frame_time: f32,
+        target_tps: f32,
     },
 }
 
@@ -64,7 +66,7 @@ impl App {
                 false
             }
             AppState::DaemonBootingUp { start_time } => {
-                let min_runtime_connection = std::time::Duration::from_secs_f32(5.0);
+                let min_runtime_connection = std::time::Duration::from_secs_f32(1.0);
 
                 if start_time.elapsed().unwrap() < min_runtime_connection {
                     // Let a bit of time for the daemon to start
@@ -84,7 +86,7 @@ impl App {
                 }
                 true
             }
-            AppState::Running { socket: _ } => {
+            AppState::Running { .. } => {
                 warn!("Why am i trying to connect to the daemon while im already connected");
                 true
             }
@@ -95,7 +97,7 @@ impl App {
         &mut self,
         message: shared::networking::ClientMessage,
     ) -> Result<(), crate::error::Error> {
-        if let AppState::Running { socket } = &mut self.state.inner {
+        if let AppState::Running { socket, .. } = &mut self.state.inner {
             Ok(socket.send(message)?)
         } else {
             Err(crate::error::Error::HesDisconnected) // https://www.youtube.com/watch?v=j-IVQDhUNsE
@@ -187,7 +189,12 @@ impl App {
     }
 
     fn _update(&mut self) {
-        let socket = self.state.get_socket().expect("'bout to kms");
+        let AppState::Running {
+            socket,
+            frame_time,
+            target_tps,
+        } = &mut self.state.inner else { return  };
+        // let socket = self.state.get_socket().expect("'bout to kms");
         // check of vars
         if let Err(e) = self.dvar_cache.update(socket) {
             error!("{e}")
@@ -196,7 +203,7 @@ impl App {
         // Check if the daemon sent messages
         match socket.recv() {
             Ok(message) => {
-                debug!("Got a message from daemon: {message:?}");
+                // debug!("Got a message from daemon: {message:?}");
 
                 match message {
                     shared::networking::DaemonMessage::Text(_txt) => {}
@@ -207,33 +214,40 @@ impl App {
                         }
                     }
                     shared::networking::DaemonMessage::BackgroundUpdate(id, monitor, content) => {
-                        let monitor_list = self
+                        if let Some(monitor_list) = self
                             .dvar_cache
                             .get(&shared::vars::VarId::MonitorList)
                             .unwrap()
                             .monitor_list()
-                            .unwrap();
+                        {
+                            let mut backgrounds = self
+                                .backgrounds
+                                .iter_mut()
+                                .filter(|bg| matches!(bg.state.inner, BackgroundState::Sent))
+                                .filter(|bg| {
+                                    if let Some(bg_monitor) = monitor_list.get(bg.monitor_index) {
+                                        bg_monitor.name == monitor.name
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .collect::<Vec<&mut Background>>();
 
-                        let mut backgrounds = self
-                            .backgrounds
-                            .iter_mut()
-                            .filter(|bg| matches!(bg.state.inner, BackgroundState::Sent))
-                            .filter(|bg| {
-                                if let Some(bg_monitor) = monitor_list.get(bg.monitor_index) {
-                                    bg_monitor.name == monitor.name
-                                } else {
-                                    false
-                                }
-                            })
-                            .collect::<Vec<&mut Background>>();
+                            if let Some(background0) = backgrounds.get_mut(0) {
+                                background0.state.set_connected(id);
+                                background0.video_path = content
+                                    .as_path()
+                                    .display()
+                                    .to_string()
+                                    .replace("\\\\?\\", "")
+                            } else {
+                                error!("No background is marked as waiting for daemon confirmation")
+                            }
 
-                        let mut background = backgrounds.get_mut(0).unwrap();
-                        background.state.set_connected(id);
-                        background.video_path = content
-                            .as_path()
-                            .display()
-                            .to_string()
-                            .replace("\\\\?\\", "")
+                            // let mut background = backgrounds.get_mut(0).unwrap();
+                        } else {
+                            error!("Monitor list var not updated yet")
+                        }
                     }
                     shared::networking::DaemonMessage::BackgroundStop(id) => {
                         debug!("{id:?} has been deleted");
@@ -244,6 +258,17 @@ impl App {
                                 true
                             }
                         })
+                    }
+                    shared::networking::DaemonMessage::Tick(dt, received_target_tps) => {
+                        *frame_time = dt;
+                        *target_tps = received_target_tps;
+                        // let tps = 1. / dt;
+
+                        // debug!(
+                        //     "Daemon tick {dt_ms}ms, {tps:.3}/{target_tps} TPS",
+                        //     dt_ms = dt * 1000.,
+                        //     tps = 1. / dt
+                        // )
                     }
                 };
             }
@@ -301,7 +326,11 @@ impl State<AppState> {
     ) {
         self.str_anim =
             crate::animations::StringAnimation::new(200, "Connected", eframe::egui::Color32::GREEN);
-        self.inner = AppState::Running { socket }
+        self.inner = AppState::Running {
+            socket,
+            frame_time: 0.,
+            target_tps: 0.,
+        }
     }
     pub fn is_running(&self) -> bool {
         matches!(self.inner, AppState::Running { .. })
@@ -314,7 +343,7 @@ impl State<AppState> {
             shared::networking::ClientMessage,
         >,
     > {
-        if let AppState::Running { socket } = &mut self.inner {
+        if let AppState::Running { socket, .. } = &mut self.inner {
             Some(socket)
         } else {
             None

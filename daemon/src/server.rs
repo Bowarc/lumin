@@ -23,9 +23,9 @@ impl Server {
         }
     }
 
-    pub fn update(&mut self, w: &mut crate::wallpaper::Wallpaper) {
+    pub fn update(&mut self, w: &mut crate::wallpaper::Wallpaper, frame_measurements: (f32, f32)) {
         if let Some(client) = &mut self.client {
-            if client.update(w).is_err() {
+            if client.update(w, frame_measurements).is_err() {
                 warn!(
                     "Client ({}) encountered an error, shutting down the socket. .",
                     client.socket.remote_addr()
@@ -72,7 +72,12 @@ impl Client {
     pub fn update(
         &mut self,
         w: &mut crate::wallpaper::Wallpaper,
+        frame_measurements: (f32, f32),
     ) -> Result<(), crate::error::Error> {
+        self.socket.send(shared::networking::DaemonMessage::Tick(
+            frame_measurements.0, // total frame time
+            frame_measurements.1, // target tps
+        ))?;
         match self.socket.recv() {
             Ok(message) => {
                 debug!("Got a message from client: {message:?}");

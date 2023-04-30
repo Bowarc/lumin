@@ -42,6 +42,7 @@ pub enum DaemonMessage {
     ValUpdate(crate::vars::VarId, crate::vars::Var),
     BackgroundUpdate(crate::id::ID, crate::monitor::Monitor, std::path::PathBuf), // id, monitor, content
     BackgroundStop(crate::id::ID),
+    Tick(f32, f32), // frame time, target tps
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {
