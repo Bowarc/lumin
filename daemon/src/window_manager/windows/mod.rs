@@ -207,23 +207,23 @@ impl crate::window_manager::WindowManager for Explorer {
     fn prepare_for_monitor(&self, monitor: shared::monitor::Monitor) {
         utils::move_window(self.workerw, monitor.position, monitor.size);
     }
-    fn on_exit(&mut self) {
-        debug!("Todo: Restore the default size and position of WorkerW
-Well, it seems it doesn't need it.
-Explainations:
-While testing on my windows machine, after moving the workerW, using it, stopping,
-They were graphical bugs that made the original background cutted and mixed with the background of other screens
+    fn cleanup(&mut self) {
+        //         debug!("Todo: Restore the default size and position of WorkerW
+        // Well, it seems it doesn't need it.
+        // Explainations:
+        // While testing on my windows machine, after moving the workerW, using it, stopping,
+        // They were graphical bugs that made the original background cutted and mixed with the background of other screens
 
-So i was planing on restoring workerW's original size to counter this problem, butmy dbg tool
-tells me that it auto re-shaped itself right after i delete the mpv process lmao
-        ");
+        // So i was planing on restoring workerW's original size to counter this problem, butmy dbg tool
+        // tells me that it auto re-shaped itself right after i delete the mpv process lmao
+        //         ");
 
         // Un-comment this if the message above turn false
-        // utils::move_window(
-        //     self.workerw,
-        //     self.default_workerW_position,
-        //     self.default_workerW_size,
-        // );
+        utils::move_window(
+            self.workerw,
+            self.default_workerW_position,
+            self.default_workerW_size,
+        );
     }
 }
 
@@ -243,5 +243,7 @@ pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
 
     use sysinfo::ProcessExt;
 
-    p.name() == "explorer.exe" && p.exe() == std::path::Path::new("C:\\Windows\\explorer.exe")
+    p.name() == "explorer.exe"
+        && p.exe() == std::path::Path::new("C:\\Windows\\explorer.exe")
+        && p.cmd() == [String::from("C:/Windows/explorer.exe")]
 }

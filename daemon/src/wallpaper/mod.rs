@@ -272,6 +272,10 @@ impl Wallpaper {
 
         debug!("Successfully killed player with method: {method:?}");
 
+        if self.players.is_empty() {
+            self.wm.cleanup()
+        }
+
         Ok(())
     }
     pub fn clean_players(&mut self) {
@@ -305,6 +309,6 @@ impl Wallpaper {
         }
         self.clean_players();
 
-        self.wm.on_exit()
+        self.wm.cleanup()
     }
 }

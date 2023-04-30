@@ -1,5 +1,14 @@
 use eframe::{egui, emath, epaint};
 
+// static VIDEO_FILE_EXTENSIONS: &'static [str] = &["mp4", "MOV", "mov"];
+#[rustfmt::skip]
+const VIDEO_FILE_EXTENSIONS: &[&str] = &[
+    "mp4", "MP4",
+    "mov", "MOV",
+    "webm", "WEBM",
+    "mkv", "MKV"
+];
+
 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
 pub struct Ui {
@@ -245,7 +254,7 @@ impl Ui {
                 ui.text_edit_singleline(&mut bg.video_path);
                 if ui.button("Open").clicked() {
                     let dll_file = rfd::AsyncFileDialog::new()
-                        .add_filter("Videos", &["mp4"])
+                        .add_filter("Videos", VIDEO_FILE_EXTENSIONS)
                         .set_directory(std::env::current_dir().unwrap())
                         .pick_file();
 
@@ -302,7 +311,7 @@ impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.app.update(&mut self.notify);
 
-        ctx.set_debug_on_hover(true);
+        // ctx.set_debug_on_hover(true);
         ctx.request_repaint();
         egui::CentralPanel::default()
             .frame(

@@ -41,3 +41,9 @@ https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-
 - Memory: 180MB / 200MB, ~80MB GPU - in debug
 - Cpu: bewteen 1.5% and 3%  - in debug
 
+
+# Ideas
+- Youtube downloader
+- Settings for sound volume, speed, etc.. !! MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a toggle-able option
+- gh pages for easy download
+- gh actions for simple compilation & versioning with pages
