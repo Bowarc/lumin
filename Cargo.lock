@@ -569,6 +569,7 @@ dependencies = [
  "shared",
  "sysinfo",
  "thiserror",
+ "url",
 ]
 
 [[package]]
@@ -2309,6 +2310,7 @@ dependencies = [
  "log-panics",
  "serde",
  "thiserror",
+ "url",
  "winapi",
 ]
 
@@ -2676,6 +2678,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

@@ -6,7 +6,7 @@ pub struct Player {
     pub monitor: shared::monitor::Monitor,
     pub window_id: usize,
     pub process: std::process::Child,
-    pub content_path: std::path::PathBuf,
+    pub content: shared::background::BackgroundContent,
 }
 
 impl Player {
@@ -14,14 +14,14 @@ impl Player {
         monitor: shared::monitor::Monitor,
         window_id: usize,
         process: std::process::Child,
-        content_path: std::path::PathBuf,
+        content: shared::background::BackgroundContent,
     ) -> Self {
         Self {
             id: shared::id::ID::new(),
             monitor,
             window_id,
             process,
-            content_path,
+            content,
         }
     }
 

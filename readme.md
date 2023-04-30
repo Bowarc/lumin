@@ -43,7 +43,7 @@ https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-
 
 
 # Ideas
-- Youtube downloader
-- Settings for sound volume, speed, etc.. !! MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a toggle-able option
+- Youtube downloader !!MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a toggle-able option
+- Settings for sound volume, speed, etc..
 - gh pages for easy download
 - gh actions for simple compilation & versioning with pages

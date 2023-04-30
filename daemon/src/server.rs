@@ -124,7 +124,7 @@ impl Client {
                             }
                             None => {
                                 // add a new player in the list
-                                match w.start_player(monitor.clone(), content.clone()) {
+                                match w.start_player(None, monitor.clone(), content.clone()) {
                                     Ok(new_player_id) => {
                                         shared::networking::DaemonMessage::BackgroundUpdate(
                                             new_player_id,
@@ -161,7 +161,7 @@ impl Client {
                             monitors.push((
                                 player.id,
                                 player.monitor.clone(),
-                                player.content_path.clone(),
+                                player.content.clone(),
                             ))
                         }
 

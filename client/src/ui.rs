@@ -174,7 +174,9 @@ impl Ui {
                 .button(egui::RichText::new("New background").size(20.))
                 .clicked()
             {
-                self.app.backgrounds.push(crate::app::Background::default());
+                self.app
+                    .backgrounds
+                    .push(crate::app::background::Background::default());
             }
         });
 
@@ -251,7 +253,7 @@ impl Ui {
 
             ui.horizontal(|ui| {
                 ui.label("Content:");
-                ui.text_edit_singleline(&mut bg.video_path);
+                ui.text_edit_singleline(&mut bg.content);
                 if ui.button("Open").clicked() {
                     let dll_file = rfd::AsyncFileDialog::new()
                         .add_filter("Videos", VIDEO_FILE_EXTENSIONS)
@@ -262,7 +264,7 @@ impl Ui {
 
                     if let Some(..) = path {
                         // self.dll_path_button_text = path.as_ref().unwrap().file_name();
-                        bg.video_path = path
+                        bg.content = path
                             .unwrap()
                             .path()
                             .as_os_str()
@@ -278,7 +280,6 @@ impl Ui {
                     match self.app.setup_bg(index){
                             Ok((monitor, path)) => self.notify.success(format!(
                                 "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {path:?}",
-                                path = path.as_path().display().to_string().replace("\\\\?\\", "")
                             )),
                             Err(e) => self.notify.error(format!("Could not send request\n{e}")),
                         };

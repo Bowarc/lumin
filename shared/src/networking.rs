@@ -36,7 +36,8 @@ pub enum ClientMessage {
     BackgroundUpdate(
         Option<crate::id::ID>,   // Option <daemon Player ID>
         crate::monitor::Monitor, // Monitor name
-        std::path::PathBuf,      // Content
+        // std::path::PathBuf,      // Content
+        crate::background::BackgroundContent, // Content
     ),
     BackgroundStop(crate::id::ID),
     SyncRequest,
@@ -48,7 +49,8 @@ pub enum DaemonMessage {
     BackgroundUpdate(
         crate::id::ID,           // Id
         crate::monitor::Monitor, // Monitor
-        std::path::PathBuf,      // Content
+        // std::path::PathBuf,      // Content
+        crate::background::BackgroundContent, // Content
     ),
     BackgroundStop(crate::id::ID),
 
@@ -61,7 +63,13 @@ pub enum DaemonMessage {
     // Tick(f32, f32), // frame time, target tps /// Removed due to memory allocation bugs, please investigate
     Error(String),
 
-    Sync(Vec<(crate::id::ID, crate::monitor::Monitor, std::path::PathBuf)>),
+    Sync(
+        Vec<(
+            crate::id::ID,
+            crate::monitor::Monitor,
+            crate::background::BackgroundContent,
+        )>,
+    ),
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {
