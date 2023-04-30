@@ -30,7 +30,7 @@ I guess create stats ? that could be fun
 - [x] Daemon informs the client of the currently playing backgrounds when client connects
 - [x] Daemon never crashes (well, sort of.. due to how explorer and windows works, the daemon has to restart in some cases, so i make the client somewhat smart with daemon crashes) 
 - [x] Daemon tells the client whenever it gets into a critical or client retated error.
-- [ ] Daemon handles mpv process cleanly (no phantom processes)
+- [x] Daemon handles mpv process cleanly (no phantom processes)
 - [ ] Daemon logs it's actions
 - [ ] Multiple animated backgrounds
 

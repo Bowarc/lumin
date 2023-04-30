@@ -61,12 +61,8 @@ impl Wallpaper {
             self.wm
                 .get_bg_window_checked()
                 .ok_or(crate::error::PlayerError::Verification(
-                    "Could not get the window id from the window manager".to_string(),
+                    "Could not get workerW id from the window manager".to_string(),
                 ))?;
-
-        // let target_window_id = crate::wallpaper::utils::get_workerw_id().ok_or(
-        //     crate::error::PlayerError::Verification("Could not get the workerW's id".to_string()),
-        // )?;
 
         let pretty_mpv_path = crate::wallpaper::mpv_dir()
             .as_path()
@@ -269,7 +265,7 @@ impl Wallpaper {
 
         Ok(())
     }
-    pub fn clean_player(&mut self) {
+    pub fn clean_players(&mut self) {
         let mut todelete = vec![];
 
         for (i, p) in self.players.iter_mut().enumerate() {
@@ -285,6 +281,21 @@ impl Wallpaper {
             !todelete.contains(&(indx - 1))
         });
 
-        debug!("{:?}", self.players)
+        debug!("Remaining players: {:?}", self.players)
+    }
+    pub fn on_exit(&mut self) {
+        let ids = self
+            .players
+            .iter()
+            .map(|player| player.id)
+            .collect::<Vec<shared::id::ID>>();
+        for player_id in ids.iter() {
+            if let Err(e) = self.stop_player(PlayerFindMethod::PlayerID(*player_id)) {
+                error!("Could not clean player ({player_id:?}): {e}")
+            }
+        }
+        self.clean_players();
+
+        self.wm.on_exit()
     }
 }

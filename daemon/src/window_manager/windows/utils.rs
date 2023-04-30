@@ -133,6 +133,21 @@ pub fn move_window(window_id: *mut windef::HWND__, position: (i32, i32), size: (
     };
 }
 
+pub fn get_window_pos_size(window_id: *mut windef::HWND__) -> ((i32, i32), (i32, i32)) {
+    let mut rect = windef::RECT {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+
+    unsafe { winuser::GetWindowRect(window_id, &mut rect) };
+
+    let position = (rect.left, rect.top);
+    let size = (rect.right - rect.left, rect.bottom - rect.top);
+    (position, size)
+}
+
 fn str_ptr(base: &'static str) -> *const i8 {
     format!("{base}\0").as_ptr() as *const i8
 }

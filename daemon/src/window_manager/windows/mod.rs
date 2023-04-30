@@ -14,18 +14,21 @@ pub mod utils;
 pub struct Explorer {
     pub pid: usize,
     pub workerw: windef::HWND,
+    pub default_workerW_position: (i32, i32),
+    pub default_workerW_size: (i32, i32),
 }
 
 // -> Option<>
 impl Explorer {
     // creates a new self, this is different than default because it runs an update
-    pub fn new() -> Self {
+    pub fn new() -> Option<Self> {
         let mut o = Self::default();
-        o.update();
-        o
+        o.update().ok()?;
+        Some(o)
     }
 
-    pub fn update(&mut self) {
+    // don't care about what is the error, if this faills, exit the programm
+    pub fn update(&mut self) -> Result<(), ()> {
         use sysinfo::{ProcessExt, SystemExt};
         let mut system = sysinfo::System::new();
         system.refresh_all();
@@ -43,7 +46,7 @@ impl Explorer {
             .is_some()
         {
             // All good
-            return;
+            return Ok(());
         } else {
             debug!("[WM] the saved pid is not the right one")
         }
@@ -103,7 +106,9 @@ impl Explorer {
 
             // This should only executes if the user kills `explorer.exe` after the daemon started it
             error!("If this EVER executes, nuke my house");
-            return;
+            crate::EXIT_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
+            error!("[CRITICAL] Requesting an exit");
+            return Err(());
         }
         let explorer_process = explorer_processes.get(0).unwrap();
 
@@ -114,10 +119,21 @@ impl Explorer {
         let workerw_opt = utils::get_workerw_id_loop(10);
 
         if let Some(workerw) = workerw_opt {
-            self.workerw = workerw
+            self.workerw = workerw;
+
+            let (pos, size) = utils::get_window_pos_size(workerw);
+
+            debug!("Setting default pos to {pos:?} and size to {size:?}");
+            self.default_workerW_position = pos;
+            self.default_workerW_size = size;
+            Ok(())
         } else {
             error!("Could not get workerW for some reason");
-            panic!("Can't get workerw")
+            crate::EXIT_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
+            error!("[CRITICAL] Requesting an exit");
+            Err(())
+
+            // panic!("Can't get workerw")
         }
     }
 }
@@ -179,7 +195,7 @@ impl crate::window_manager::WindowManager for Explorer {
             return Some(self.workerw as usize);
         }
 
-        self.update();
+        self.update().ok();
 
         Some(self.workerw as usize)
     }
@@ -191,6 +207,24 @@ impl crate::window_manager::WindowManager for Explorer {
     fn prepare_for_monitor(&self, monitor: shared::monitor::Monitor) {
         utils::move_window(self.workerw, monitor.position, monitor.size);
     }
+    fn on_exit(&mut self) {
+        debug!("Todo: Restore the default size and position of WorkerW
+Well, it seems it doesn't need it.
+Explainations:
+While testing on my windows machine, after moving the workerW, using it, stopping,
+They were graphical bugs that made the original background cutted and mixed with the background of other screens
+
+So i was planing on restoring workerW's original size to counter this problem, butmy dbg tool
+tells me that it auto re-shaped itself right after i delete the mpv process lmao
+        ");
+
+        // Un-comment this if the message above turn false
+        // utils::move_window(
+        //     self.workerw,
+        //     self.default_workerW_position,
+        //     self.default_workerW_size,
+        // );
+    }
 }
 
 impl Default for Explorer {
@@ -198,6 +232,8 @@ impl Default for Explorer {
         Self {
             pid: 0,
             workerw: std::ptr::null_mut(),
+            default_workerW_position: (0, 0),
+            default_workerW_size: (0, 0),
         }
     }
 }

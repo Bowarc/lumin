@@ -1,12 +1,12 @@
 // copied form my other project <github.com/Bowarc/WTBC>
 
 pub struct Server {
-    client: Option<Client>,
+    pub client: Option<Client>,
     tcp_listener: std::net::TcpListener,
 }
 
 pub struct Client {
-    socket: shared::networking::Socket<
+    pub socket: shared::networking::Socket<
         shared::networking::ClientMessage, // Reading
         shared::networking::DaemonMessage, // Writing
     >,
