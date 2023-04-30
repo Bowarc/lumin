@@ -33,16 +33,35 @@ pub enum SocketError {
 pub enum ClientMessage {
     Text(String),
     VarRequest(crate::vars::VarId),
-    BackgroundSetup(crate::monitor::Monitor, std::path::PathBuf), // Monitor name, Content
+    BackgroundUpdate(
+        Option<crate::id::ID>,   // Option <daemon Player ID>
+        crate::monitor::Monitor, // Monitor name
+        std::path::PathBuf,      // Content
+    ),
     BackgroundStop(crate::id::ID),
+    SyncRequest,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DaemonMessage {
     Text(String),
     ValUpdate(crate::vars::VarId, crate::vars::Var),
-    BackgroundUpdate(crate::id::ID, crate::monitor::Monitor, std::path::PathBuf), // id, monitor, content
+    BackgroundUpdate(
+        crate::id::ID,           // Id
+        crate::monitor::Monitor, // Monitor
+        std::path::PathBuf,      // Content
+    ),
     BackgroundStop(crate::id::ID),
-    Tick(f32, f32), // frame time, target tps
+
+    // This for some reason makes the client crash with console saying:
+    // Reading header.. Done, 8 bytes
+    // Deserializing header..
+    // Deserializing header.. Done: PacketHeader { size: 4453664984672501765 }
+    // memory allocation of 4453664984672501765 bytes failed
+    // :/
+    // Tick(f32, f32), // frame time, target tps /// Removed due to memory allocation bugs, please investigate
+    Error(String),
+
+    Sync(Vec<(crate::id::ID, crate::monitor::Monitor, std::path::PathBuf)>),
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {
@@ -69,10 +88,10 @@ impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Sock
         // println!("Serializing header.. Done, {} bytes", header_bytes.len());
 
         // idk if panicking is a good idea
-        // assert_eq!(header_bytes.len(), HEADER_SIZE);
-        if header_bytes.len() != HEADER_SIZE {
-            return Err(SocketError::DeSerialization(Box::new(bincode::ErrorKind::Custom("The length of the serialized header is not equal to the HEADER_SIZE constant ({HEADER_SIZE})".into())),));
-        }
+        assert_eq!(header_bytes.len(), HEADER_SIZE);
+        // if header_bytes.len() != HEADER_SIZE {
+        //     return Err(SocketError::DeSerialization(Box::new(bincode::ErrorKind::Custom("The length of the serialized header is not equal to the HEADER_SIZE constant ({HEADER_SIZE})".into())),));
+        // }
 
         // println!("Writing header to stream..");
         self.stream.write_all(&header_bytes)?;

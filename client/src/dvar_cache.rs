@@ -13,6 +13,8 @@ pub enum Future {
     Sent,
     Received(shared::vars::Var),
 }
+
+// This originally was meant to be used more widely but only one var was usefull
 #[derive(Default)]
 pub struct DVarCache {
     cache: std::collections::HashMap<shared::vars::VarId, Future>,

@@ -27,9 +27,9 @@ I guess create stats ? that could be fun
 - [x] Daemon can apply a given video as the desktop background (fixed options for now)
 - [x] Client can tell daemon to add and remove backgrounds
 - [x] Better ux with [egui notify](https://github.com/ItsEthra/egui-notify)
-- [ ] Daemon informs the client of the currently playing backgrounds when client connects
+- [x] Daemon informs the client of the currently playing backgrounds when client connects
 - [x] Daemon never crashes (well, sort of.. due to how explorer and windows works, the daemon has to restart in some cases, so i make the client somewhat smart with daemon crashes) 
-- [ ] Daemon tells the client whenever it gets into a critical or client retated error.
+- [x] Daemon tells the client whenever it gets into a critical or client retated error.
 - [ ] Daemon handles mpv process cleanly (no phantom processes)
 - [ ] Daemon logs it's actions
 - [ ] Multiple animated backgrounds
@@ -37,6 +37,7 @@ I guess create stats ? that could be fun
 https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-8f36-633233083b74.mp4
 
 
-
-
+# Memory/cpu usage
+- Memory: 180MB / 200MB, ~80MB GPU - in debug
+- Cpu: bewteen 1.5% and 3%  - in debug
 

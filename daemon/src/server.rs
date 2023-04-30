@@ -39,6 +39,8 @@ impl Server {
                     stream.set_nodelay(true).unwrap(); // ?
 
                     self.client = Some(Client::new(stream));
+
+                    // tell the client about the on-going wallapapers
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // wait until network socket is ready, typically implemented
@@ -72,12 +74,18 @@ impl Client {
     pub fn update(
         &mut self,
         w: &mut crate::wallpaper::Wallpaper,
-        frame_measurements: (f32, f32),
+        _frame_measurements: (f32, f32),
     ) -> Result<(), crate::error::Error> {
-        self.socket.send(shared::networking::DaemonMessage::Tick(
-            frame_measurements.0, // total frame time
-            frame_measurements.1, // target tps
-        ))?;
+        // This for some reason makes the client crash with console saying:
+        // Reading header.. Done, 8 bytes
+        // Deserializing header..
+        // Deserializing header.. Done: PacketHeader { size: 4453664984672501765 }
+        // memory allocation of 4453664984672501765 bytes failed
+        // :/
+        // self.socket.send(shared::networking::DaemonMessage::Tick(
+        //     frame_measurements.0, // total frame time
+        //     frame_measurements.1, // target tps
+        // ))?;
         match self.socket.recv() {
             Ok(message) => {
                 debug!("Got a message from client: {message:?}");
@@ -94,27 +102,70 @@ impl Client {
                             )
                         }
                     },
-                    shared::networking::ClientMessage::BackgroundSetup(monitor, content) => match w
-                        .start_player(monitor.clone(), content.clone())
-                    {
-                        Ok(new_player_id) => shared::networking::DaemonMessage::BackgroundUpdate(
-                            new_player_id,
-                            monitor,
-                            content,
-                        ),
-                        Err(e) => {
-                            error!("{e}");
-                            panic!("{e}")
+                    shared::networking::ClientMessage::BackgroundUpdate(
+                        id_opt,
+                        monitor,
+                        content,
+                    ) => {
+                        match id_opt {
+                            Some(id) => {
+                                // Update the player in the list
+                                match w.update_player(id, monitor.clone(), content.clone()) {
+                                    Ok(_) => shared::networking::DaemonMessage::BackgroundUpdate(
+                                        id, monitor, content,
+                                    ),
+                                    Err(e) => {
+                                        // TODO inform the client about the error
+                                        error!("{e}");
+                                        shared::networking::DaemonMessage::Error(format!("{e}"))
+                                        // panic!("SEND THE ERROR TO THE CLIENT{e}");
+                                    }
+                                }
+                            }
+                            None => {
+                                // add a new player in the list
+                                match w.start_player(monitor.clone(), content.clone()) {
+                                    Ok(new_player_id) => {
+                                        shared::networking::DaemonMessage::BackgroundUpdate(
+                                            new_player_id,
+                                            monitor,
+                                            content,
+                                        )
+                                    }
+
+                                    Err(e) => {
+                                        error!("{e}");
+
+                                        shared::networking::DaemonMessage::Error(format!("{e}"))
+                                        // error!("{e}");
+                                        // panic!("SEND THE ERROR TO THE CLIENT{e}");
+                                    }
+                                }
+                            }
                         }
-                    },
+                    }
                     shared::networking::ClientMessage::BackgroundStop(id) => {
                         match w.stop_player(crate::wallpaper::PlayerFindMethod::PlayerID(id)) {
                             Ok(_) => shared::networking::DaemonMessage::BackgroundStop(id),
                             Err(e) => {
                                 error!("{e}");
-                                panic!("{e}")
+                                // panic!("{e}")
+                                shared::networking::DaemonMessage::Error(format!("{e}"))
                             }
                         }
+                    }
+                    shared::networking::ClientMessage::SyncRequest => {
+                        let mut monitors = vec![];
+                        // tell the client about the on-going wallapapers
+                        for player in &w.players {
+                            monitors.push((
+                                player.id,
+                                player.monitor.clone(),
+                                player.content_path.clone(),
+                            ))
+                        }
+
+                        shared::networking::DaemonMessage::Sync(monitors)
                     }
                 };
                 self.socket.send(response)?;

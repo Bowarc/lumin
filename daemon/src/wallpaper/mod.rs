@@ -106,6 +106,77 @@ impl Wallpaper {
         self.players.push(new_player);
         Ok(new_player_id)
     }
+    pub fn update_player(
+        &mut self,
+        id: shared::id::ID,
+        monitor: shared::monitor::Monitor,
+        path: std::path::PathBuf,
+    ) -> Result<(), crate::error::Error> {
+        error!("This is a placeholder method, please rework it");
+
+        // as a placeholder we're gonna kill and start a new player, but in the future
+        // Please implement a messaging system between the player and it's process (check livewallpaper for an example)
+
+        self.stop_player(PlayerFindMethod::PlayerID(id))?;
+
+        {
+            if !path.exists() {
+                return Err(crate::error::PlayerError::Verification(format!(
+                    "The given video path does not exists: '{path:?}'"
+                ))
+                .into());
+            }
+            let target_window_id =
+                self.wm
+                    .get_bg_window_checked()
+                    .ok_or(crate::error::PlayerError::Verification(
+                        "Could not get the window id from the window manager".to_string(),
+                    ))?;
+
+            // let target_window_id = crate::wallpaper::utils::get_workerw_id().ok_or(
+            //     crate::error::PlayerError::Verification("Could not get the workerW's id".to_string()),
+            // )?;
+
+            let pretty_mpv_path = crate::wallpaper::mpv_dir()
+                .as_path()
+                .display()
+                .to_string()
+                .replace("\\\\?\\", "");
+            let pretty_path = path.as_path().display().to_string().replace("\\\\?\\", "");
+            let args = vec![
+                format!("--player-operation-mode=pseudo-gui"),
+                format!("--force-window=yes"),
+                format!("--terminal=no"),
+                format!("--no-audio"),
+                format!("--loop=inf"),
+                format!("--wid={:?}", target_window_id),
+                format!("{pretty_path}"),
+            ];
+            debug!("Running mpv({pretty_mpv_path}) with args: {args:?}");
+
+            let process = std::process::Command::new(pretty_mpv_path)
+                .args(args)
+                .stderr(std::process::Stdio::null())
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .spawn()
+                .map_err(crate::error::PlayerError::from)?;
+
+            // Set the position&size of the workerW to fit exacly the screen
+            self.wm.prepare_for_monitor(monitor.clone());
+            // crate::wallpaper::utils::move_window(target_window_id, monitor.position, monitor.size);
+
+            // Still need to restore the worker on close tho ^
+
+            let mut new_player = player::Player::new(monitor, target_window_id, process, path);
+
+            new_player.id = id;
+
+            self.players.push(new_player);
+        }
+
+        Ok(())
+    }
     pub fn stop_player(&mut self, method: PlayerFindMethod) -> Result<(), crate::error::Error> {
         let player_index = match method {
             PlayerFindMethod::PlayerID(id) => {

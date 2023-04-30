@@ -145,21 +145,8 @@ impl Ui {
             // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
             .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
             .show(ctx, |ui| {
-                let mut text = self.app.state.str_anim.get_text();
-
-                if let crate::app::AppState::Running {
-                    socket: _,
-                    frame_time,
-                    target_tps,
-                } = &self.app.state.inner
-                {
-                    text = format!("{}\n{:.5}ms", text, frame_time)
-                }
-
-                // if let
-                // let text = format!("{} - {}ms", )
                 ui.add(egui::Label::new(egui::WidgetText::RichText(
-                    egui::RichText::new(text)
+                    egui::RichText::new(self.app.state.str_anim.get_text())
                         .color(self.app.state.str_anim.get_color())
                         .text_style(egui::TextStyle::Monospace),
                 )));
@@ -294,7 +281,7 @@ impl Ui {
 
 impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.app.update();
+        self.app.update(&mut self.notify);
 
         ctx.set_debug_on_hover(true);
         ctx.request_repaint();

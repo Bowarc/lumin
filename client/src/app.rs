@@ -11,9 +11,16 @@ pub enum AppState {
             shared::networking::DaemonMessage,
             shared::networking::ClientMessage,
         >,
-        frame_time: f32,
-        target_tps: f32,
+        sync_state: SyncState,
     },
+}
+
+#[derive(Default, PartialEq)]
+pub enum SyncState {
+    #[default]
+    No,
+    Requested,
+    Yes,
 }
 
 // pub struct AppState {
@@ -79,7 +86,7 @@ impl App {
             }
             AppState::ConnectingToDaemon => {
                 if let Some(socket) = crate::utils::try_connect_to_daemon() {
-                    self.state.set_running(socket)
+                    self.state.set_running(socket, SyncState::default())
                 } else {
                     error!("Could not create the socket");
                     self.state.set_init()
@@ -104,9 +111,9 @@ impl App {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, notify: &mut egui_notify::Toasts) {
         if self.state.is_running() {
-            self._update()
+            self._update(notify)
         } else {
             self.try_connect_to_daemon();
         }
@@ -153,7 +160,16 @@ impl App {
             .unwrap()
             .clone();
 
-        let message = shared::networking::ClientMessage::BackgroundSetup(
+        // As we use the same signal for background setup and update
+        // we need to give the id if we want it to be an update message
+        let id = if let BackgroundState::Connected { id } = selected_background.state.inner {
+            Some(id)
+        } else {
+            None
+        };
+
+        let message = shared::networking::ClientMessage::BackgroundUpdate(
+            id,
             selected_monitor.clone(),
             content_pathbuf.clone(),
         );
@@ -188,25 +204,42 @@ impl App {
         }
     }
 
-    fn _update(&mut self) {
+    fn _update(&mut self, notify: &mut egui_notify::Toasts) {
         let AppState::Running {
-            socket,
-            frame_time,
-            target_tps,
-        } = &mut self.state.inner else { return  };
+            socket, sync_state } = &mut self.state.inner else { return  };
         // let socket = self.state.get_socket().expect("'bout to kms");
+
         // check of vars
         if let Err(e) = self.dvar_cache.update(socket) {
+            notify.error(format!("{e}"));
             error!("{e}")
+        }
+
+        // if we have the monitor list and we didn't requested it yet,
+        // we can ask for the backgrounds that the daemon is currenly running
+        if self
+            .dvar_cache
+            .get(&shared::vars::VarId::MonitorList)
+            .is_ok()
+            && *sync_state == SyncState::No
+        {
+            debug!("requesting sync");
+            if let Err(e) = socket.send(shared::networking::ClientMessage::SyncRequest) {
+                notify.error(format!("{e}"));
+            }
+            *sync_state = SyncState::Requested
         }
 
         // Check if the daemon sent messages
         match socket.recv() {
             Ok(message) => {
-                // debug!("Got a message from daemon: {message:?}");
+                debug!("Got a message from daemon: {message:?}");
 
                 match message {
-                    shared::networking::DaemonMessage::Text(_txt) => {}
+                    shared::networking::DaemonMessage::Text(txt) => {
+                        debug!("Daemon sent: {txt}");
+                        notify.info(format!("Daemon sent {txt}"));
+                    }
                     shared::networking::DaemonMessage::ValUpdate(id, val) => {
                         // debug!("Receiving {val:#?} for {id:?}");
                         if let Err(e) = self.dvar_cache.recv(id, val) {
@@ -259,16 +292,54 @@ impl App {
                             }
                         })
                     }
-                    shared::networking::DaemonMessage::Tick(dt, received_target_tps) => {
-                        *frame_time = dt;
-                        *target_tps = received_target_tps;
-                        // let tps = 1. / dt;
+                    shared::networking::DaemonMessage::Error(e) => {
+                        notify.error(e);
+                    }
+                    shared::networking::DaemonMessage::Sync(daemon_backgrounds) => {
+                        if let Ok(monitor_list_var) =
+                            self.dvar_cache.get(&shared::vars::VarId::MonitorList)
+                        {
+                            let monitor_list = monitor_list_var.monitor_list().unwrap();
+                            let mut bg_list = vec![];
+                            for (id, monitor, content) in daemon_backgrounds.iter() {
+                                let monitor_index = {
+                                    let temp = monitor_list
+                                        .iter()
+                                        .enumerate()
+                                        .filter(|(_i, m)| m.name == monitor.name)
+                                        .map(|(i, _m)| i)
+                                        .collect::<Vec<usize>>();
 
-                        // debug!(
-                        //     "Daemon tick {dt_ms}ms, {tps:.3}/{target_tps} TPS",
-                        //     dt_ms = dt * 1000.,
-                        //     tps = 1. / dt
-                        // )
+                                    *temp.first()
+                                            .unwrap_or_else(||{
+                                                notify.error("Could not synchronise Id({id}), try to hit the repair button to fix");
+                                                &0
+                                            })
+                                };
+
+                                let new_background = Background {
+                                    monitor_index,
+                                    video_path: content
+                                        .as_path()
+                                        .display()
+                                        .to_string()
+                                        .replace("\\\\?\\", ""),
+                                    state: {
+                                        let mut temp = State::<BackgroundState>::default();
+                                        temp.set_connected(*id);
+                                        temp
+                                    },
+                                };
+                                bg_list.push(new_background);
+                            }
+                            self.backgrounds = bg_list;
+                            debug!("Sync received");
+                            *sync_state = SyncState::Yes
+                        } else {
+                            debug!("Could not parse sync, re-requesting");
+                            *sync_state = SyncState::No;
+                            // return;
+                        };
                     }
                 };
             }
@@ -323,14 +394,11 @@ impl State<AppState> {
             shared::networking::DaemonMessage,
             shared::networking::ClientMessage,
         >,
+        sync_state: SyncState,
     ) {
         self.str_anim =
             crate::animations::StringAnimation::new(200, "Connected", eframe::egui::Color32::GREEN);
-        self.inner = AppState::Running {
-            socket,
-            frame_time: 0.,
-            target_tps: 0.,
-        }
+        self.inner = AppState::Running { socket, sync_state }
     }
     pub fn is_running(&self) -> bool {
         matches!(self.inner, AppState::Running { .. })
@@ -405,5 +473,15 @@ impl Default for State<BackgroundState> {
         };
         o.set_not_sent();
         o
+    }
+}
+
+impl SyncState {
+    pub fn is_synched(&self) -> bool {
+        matches!(self, SyncState::Yes)
+    }
+
+    pub fn is_requested(&self) -> bool {
+        matches!(self, SyncState::Requested)
     }
 }

@@ -111,7 +111,7 @@ impl Explorer {
 
         // let's get it's workerw
 
-        let workerw_opt = utils::get_workerw_id_loop(1);
+        let workerw_opt = utils::get_workerw_id_loop(10);
 
         if let Some(workerw) = workerw_opt {
             self.workerw = workerw
