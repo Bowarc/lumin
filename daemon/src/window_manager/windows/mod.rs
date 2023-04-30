@@ -105,7 +105,7 @@ impl Explorer {
             // If this EVER executes, nuke my house
 
             // This should only executes if the user kills `explorer.exe` after the daemon started it
-            error!("If this EVER executes, nuke my house");
+            error!("If this EVER executes, nuke my house: {explorer_processes:?}");
             crate::EXIT_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
             error!("[CRITICAL] Requesting an exit");
             return Err(());

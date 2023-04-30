@@ -18,8 +18,17 @@ fn mpv_dir() -> std::path::PathBuf {
     ));
     debug!("{o:?}");
 
-    assert!(o.exists());
-    o
+    // assert!(o.exists());
+
+    if o.exists() {
+        o
+    } else {
+        const MPV_EXE_NAME: &str = "lumin_mpv.exe";
+        let mut o = std::env::current_exe().unwrap();
+        o.set_file_name(MPV_EXE_NAME);
+        assert!(o.exists());
+        o
+    }
 }
 
 #[derive(Debug)]

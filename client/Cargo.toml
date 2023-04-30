@@ -15,3 +15,5 @@ log = "0.4.17"
 shared = {path = "../shared"}
 sysinfo = "0.28.4"
 thiserror = "1.0.40"
+futures = "0.3.28"
+rfd = "0.11.3"

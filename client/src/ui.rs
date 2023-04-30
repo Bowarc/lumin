@@ -243,6 +243,25 @@ impl Ui {
             ui.horizontal(|ui| {
                 ui.label("Content:");
                 ui.text_edit_singleline(&mut bg.video_path);
+                if ui.button("Open").clicked() {
+                    let dll_file = rfd::AsyncFileDialog::new()
+                        .add_filter("Videos", &["mp4"])
+                        .set_directory(std::env::current_dir().unwrap())
+                        .pick_file();
+
+                    let path = futures::executor::block_on(dll_file);
+
+                    if let Some(..) = path {
+                        // self.dll_path_button_text = path.as_ref().unwrap().file_name();
+                        bg.video_path = path
+                            .unwrap()
+                            .path()
+                            .as_os_str()
+                            .to_str()
+                            .unwrap()
+                            .to_string();
+                    }
+                }
             });
 
             ui.horizontal(|ui|{
