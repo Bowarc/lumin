@@ -25,13 +25,14 @@ pub fn get_screens() -> Vec<shared::monitor::Monitor> {
 pub fn get_workerw_id_loop(max_loops: usize) -> Option<windef::HWND> {
     let mut x = 0;
     loop {
-        debug!("Loop {x}");
+        debug!("Try {}/{}", x + 1, max_loops);
         if let Some(w) = get_workerw_id() {
+            debug!("got wokerW with HWND {w:?}");
             return Some(w);
         }
         // std::thread::sleep(std::time::Duration::from_secs_f32(0.5));
         x += 1;
-        if x == max_loops {
+        if x == max_loops - 1 {
             break;
         }
     }
@@ -186,7 +187,7 @@ extern "system" fn find_worker(wnd: *mut windef::HWND__, lp: minwindef::LPARAM) 
     };
 
     if !(*pworker).is_null() {
-        debug!("Wallpaper is {pworker:?}\nIts parent is {wnd:?}");
+        // debug!("Wallpaper is {pworker:?}\nIts parent is {wnd:?}");
         return minwindef::FALSE;
     }
 

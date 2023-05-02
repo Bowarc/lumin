@@ -47,3 +47,5 @@ https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-
 - Settings for sound volume, speed, etc..
 - gh pages for easy download
 - gh actions for simple compilation & versioning with pages
+- easy graphical installer for install (duh) and version managing
+- run on startup with the last background played, easy with the installer and a config file

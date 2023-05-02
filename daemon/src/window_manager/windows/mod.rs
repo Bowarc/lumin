@@ -14,8 +14,8 @@ pub mod utils;
 pub struct Explorer {
     pub pid: usize,
     pub workerw: windef::HWND,
-    pub default_workerW_position: (i32, i32),
-    pub default_workerW_size: (i32, i32),
+    pub default_workerw_position: (i32, i32),
+    pub default_workerw_size: (i32, i32),
 }
 
 // -> Option<>
@@ -40,7 +40,6 @@ impl Explorer {
             .filter(|p| {
                 // Verify that it's the right `explorer.exe`
                 // (for the very small case that the user has a non-windows related app named 'explorer.exe')
-
                 validate_explorer_process(p)
             })
             .is_some()
@@ -50,42 +49,6 @@ impl Explorer {
         } else {
             debug!("[WM] the saved pid is not the right one")
         }
-
-        while system
-            .processes()
-            .iter()
-            .filter_map(|(_pid, process)| {
-                if validate_explorer_process(process) {
-                    Some(process)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<&sysinfo::Process>>()
-            .is_empty()
-        {
-            // Explorer is not running
-            // Probably with std::process::Command(complete_path_of_windows_explorer)
-            // todo!("Run explorer");
-
-            let child =
-                std::process::Command::new(std::path::Path::new("C:\\Windows\\explorer.exe"))
-                    .stderr(std::process::Stdio::null())
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .spawn();
-
-            debug!("New explorer child: {child:?}");
-
-            // hehe
-            drop(child);
-
-            let arbitrary_startup_time_ms = 1000;
-            std::thread::sleep(std::time::Duration::from_millis(arbitrary_startup_time_ms));
-            system.refresh_processes()
-        }
-
-        // A new explorer.exe has been started, let's save it's pid
 
         // If this crashes, i don't understand
         let explorer_processes = system
@@ -105,7 +68,8 @@ impl Explorer {
             // If this EVER executes, nuke my house
 
             // This should only executes if the user kills `explorer.exe` after the daemon started it
-            error!("If this EVER executes, nuke my house: {explorer_processes:?}");
+            error!("Could not get explorer.exe {explorer_processes:#?}");
+
             crate::EXIT_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
             error!("[CRITICAL] Requesting an exit");
             return Err(());
@@ -123,9 +87,9 @@ impl Explorer {
 
             let (pos, size) = utils::get_window_pos_size(workerw);
 
-            debug!("Setting default pos to {pos:?} and size to {size:?}");
-            self.default_workerW_position = pos;
-            self.default_workerW_size = size;
+            debug!("WorkerW default pos: {pos:?}, size: {size:?}");
+            self.default_workerw_position = pos;
+            self.default_workerw_size = size;
             Ok(())
         } else {
             error!("Could not get workerW for some reason");
@@ -221,8 +185,8 @@ impl crate::window_manager::WindowManager for Explorer {
         // Un-comment this if the message above turn false
         utils::move_window(
             self.workerw,
-            self.default_workerW_position,
-            self.default_workerW_size,
+            self.default_workerw_position,
+            self.default_workerw_size,
         );
     }
 }
@@ -243,7 +207,24 @@ pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
 
     use sysinfo::ProcessExt;
 
-    p.name() == "explorer.exe"
-        && p.exe() == std::path::Path::new("C:\\Windows\\explorer.exe")
-        && p.cmd() == [String::from("C:/Windows/explorer.exe")]
+    let mut ok = true;
+
+    if p.name() != "explorer.exe" {
+        // debug!("Explorer check for {p:?} failled on `p.name() != \"explorer.exe\"`");
+        ok = false
+    } else if p.exe().as_os_str().to_str() != Some("C:\\Windows\\explorer.exe") {
+        debug!("Explorer check for {p:?} failled on `p.exe().as_os_str().to_str() != Some(\"C:\\Windows\\explorer.exe\")`");
+        ok = false
+    } else if p.cmd().len() != 1 {
+        debug!(
+            "Explorer check for {p:?} failled on `if p.cmd().len() !=1` ({})",
+            p.cmd().len()
+        );
+        ok = false
+    } else if p.cmd().get(0).unwrap().to_lowercase() != r"c:\windows\explorer.exe" {
+        debug!("Explorer check for {p:?} failled on `p.cmd().get(0).unwrap().to_lowercase() != \"c:\\windows\\explorer.exe\"` ({})", p.cmd().get(0).unwrap().to_lowercase());
+        ok = false
+    }
+
+    ok
 }

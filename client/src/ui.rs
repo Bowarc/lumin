@@ -275,14 +275,15 @@ impl Ui {
                 }
             });
 
-            ui.horizontal(|ui|{
+            ui.horizontal(|ui| {
                 if ui.button("Send").clicked() {
-                    match self.app.setup_bg(index){
-                            Ok((monitor, path)) => self.notify.success(format!(
-                                "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {path:?}",
-                            )),
-                            Err(e) => self.notify.error(format!("Could not send request\n{e}")),
-                        };
+                    match self.app.setup_bg(index) {
+                        Ok((monitor, content)) => self.notify.success(format!(
+                            "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {}",
+                            content.to_string()
+                        )),
+                        Err(e) => self.notify.error(format!("Could not send request\n{e}")),
+                    };
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {

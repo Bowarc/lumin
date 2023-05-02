@@ -17,9 +17,8 @@ const TARGET_TPS: f32 = 10.;
 static EXIT_REQUESTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn main() {
-    shared::logger::init(None);
-    debug!("Daemon main");
-    println!("Daemon main");
+    shared::logger::init(Some("daemon_log.txt"));
+    debug!("Daemon start");
 
     let wm = window_manager::windows::Explorer::new().unwrap();
     let mut s = server::Server::new();
