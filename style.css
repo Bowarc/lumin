@@ -1,7 +1,18 @@
 body{
     box-sizing: border-box;
-    padding: 0;
-    margin:  0;
     color: white;
-    background: #313131; 
+    background: var(--color0);
+    font-size: 20px;
+}
+
+:root {
+  --color0: rgba(8, 32, 38, 1);
+  --color1: rgba(20, 60, 69, 1);
+  --color2: rgba(36, 98, 109, 1);
+  --color3: rgba(57, 147, 158, 1);
+  --color4: rgba(85, 207, 216, 1);
+}
+
+.title{
+    text-align: center;
 }
