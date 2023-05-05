@@ -182,3 +182,17 @@ Its parent is 0x101fc
 ╰❯Error while listening for message: std::io error: failed to fill whole buffer
 ╭[13:46:52 WARN daemon\src\server.rs:29]
 ╰❯Client (127.0.0.1:64825) encountered an error, shutting down the socket. .
+╭[01:30:33 DEBUG daemon\src/main.rs:21]
+╰❯Daemon start
+╭[01:30:34 DEBUG daemon\src\window_manager\windows\mod.rs:50]
+╰❯[WM] the saved pid is not the right one
+╭[01:30:34 DEBUG daemon\src\window_manager\windows\utils.rs:28]
+╰❯Try 1/10
+╭[01:30:34 DEBUG daemon\src\window_manager\windows\utils.rs:63]
+╰❯Scanning for workerW
+╭[01:30:35 DEBUG daemon\src\window_manager\windows\utils.rs:30]
+╰❯got wokerW with HWND 0x7e0a06
+╭[01:30:35 DEBUG daemon\src\window_manager\windows\mod.rs:90]
+╰❯WorkerW default pos: (-1280, 0), size: (4566, 1080)
+╭[01:30:35 DEBUG daemon\src/main.rs:27]
+╰❯[Monitor { name: "DISPLAY1", position: (0, 0), size: (1920, 1080) }, Monitor { name: "DISPLAY2", position: (1920, 0), size: (1366, 768) }, Monitor { name: "DISPLAY3", position: (-1280, 0), size: (1024, 819) }]

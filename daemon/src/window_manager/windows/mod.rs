@@ -196,8 +196,8 @@ impl Default for Explorer {
         Self {
             pid: 0,
             workerw: std::ptr::null_mut(),
-            default_workerW_position: (0, 0),
-            default_workerW_size: (0, 0),
+            default_workerw_position: (0, 0),
+            default_workerw_size: (0, 0),
         }
     }
 }
