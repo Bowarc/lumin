@@ -212,8 +212,10 @@ pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
     if p.name() != "explorer.exe" {
         // debug!("Explorer check for {p:?} failled on `p.name() != \"explorer.exe\"`");
         ok = false
-    } else if p.exe().as_os_str().to_str() != Some("C:\\Windows\\explorer.exe") {
-        debug!("Explorer check for {p:?} failled on `p.exe().as_os_str().to_str() != Some(\"C:\\Windows\\explorer.exe\")`");
+    } else if p.exe().as_os_str().to_str() != Some("C:\\Windows\\explorer.exe")
+        && p.exe().as_os_str().to_str() != Some("C:/Windows/explorer.exe")
+    {
+        debug!("Explorer check for {p:?} failled on `p.exe().as_os_str().to_str() != Some(\"C:\\Windows\\explorer.exe\")`: {:?}", p.exe().as_os_str().to_str());
         ok = false
     } else if p.cmd().len() != 1 {
         debug!(
@@ -221,7 +223,9 @@ pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
             p.cmd().len()
         );
         ok = false
-    } else if p.cmd().get(0).unwrap().to_lowercase() != r"c:\windows\explorer.exe" {
+    } else if p.cmd().get(0).unwrap().to_lowercase() != r"c:\windows\explorer.exe"
+        && p.cmd().get(0).unwrap().to_lowercase() != r"c:/windows/explorer.exe"
+    {
         debug!("Explorer check for {p:?} failled on `p.cmd().get(0).unwrap().to_lowercase() != \"c:\\windows\\explorer.exe\"` ({})", p.cmd().get(0).unwrap().to_lowercase());
         ok = false
     }

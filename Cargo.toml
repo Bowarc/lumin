@@ -4,4 +4,8 @@ members = [
     "shared",
     "client",
     "daemon",
+    "workerw_fetcher" # a replacement for the daemon
+]
+exclude = [
+    "research\\downloader"
 ]

@@ -43,9 +43,31 @@ https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-
 
 
 # Ideas
-- Youtube downloader !!MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a toggle-able option
+- Youtube downloader !!MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a
+  toggle-able option
 - Settings for sound volume, speed, etc..
 - gh pages for easy download
 - gh actions for simple compilation & versioning with pages
 - easy graphical installer for install (duh) and version managing
 - run on startup with the last background played, easy with the installer and a config file
+- tray menu ?
+- Stop the daemon is the client disconnects and there is no backrounds playing (It's useless to keep the daemon
+  running if it's just gonna be idle)
+
+# Dev questions: 
+- About he installer: 
+    - As the installer will be used to update and uninstall, how does the installer keeps track of the existing
+      Lumin install(s, multiple is usless btw)
+    - There will be one installer, any installer update(there will not be a lot) will be managed through a self 
+      updater 
+- About the client, 
+    - A global refactor where the client never stops and serves the purpose of the actual client + daemon
+      but there is still the question of: How do the client manage WorkerW not found error on windows?
+        There is 2 solution to this: 
+        - 1, 'WorkerW is fetch by another tiny program'
+        - 2, 'FIX THE FCING METHOD'
+      This could allow us to:
+        - Remove all the client - daemon comunication code, would simplify error management etc.
+        - Put the client in the tray menu and only close the window when the user 'stops' the app
+
+

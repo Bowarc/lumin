@@ -1,0 +1,19 @@
+I want to refactor Lumin, Koz
+    I don't like how unstable it is.
+    The client-server approach has a lot of flaws like the fact that to implement a feature, 
+        I have to implement it a first time in the daemon, then the implement what the user will see in the client
+        then write some more code to make the two comunicate about that new feature
+
+I'd like to switch out from a client-server approach and only keep the client
+    One problem of that is the fact that Windows is bad and to get the WorkerW(required to draw on background), the method is unstable af and sometimes require the process to restart completly
+    But you can't make the interface restart, so i have to find another way
+        One solution to that is to keep a tiny tiny program that only is usefull to windows users and is launched by the client and just fetches the WorkerW id and stops right away
+        This way the client manages everything.
+
+I STILL WOULD LIKE TO BE ABLE TO CLOSE THE CLIENT WINDOW 
+but i need to find a way to keep the process open (tray menu ?) // YES https://github.com/olback/tray-item-rs
+                                                                       This in an other thread with a loop{} in main
+                                                                       to listen what the thread2 says with a channel
+                                                                       it's doable to have a 'app' struct and keep
+                                                                       it alive all the time and give it away to the 
+                                                                       ui when tray ask for ui
