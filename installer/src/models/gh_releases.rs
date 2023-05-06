@@ -21,8 +21,8 @@ pub struct Release {
     pub zipball_url: String,
     pub body: String,
 }
-#[derive(Debug, serde::Deserialize)]
 
+#[derive(Debug, serde::Deserialize)]
 pub struct User {
     pub login: String,
     pub id: usize,
