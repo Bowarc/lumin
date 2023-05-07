@@ -32,101 +32,12 @@ const GH_API_RELEASE_URL: &str = "https://api.github.com/repos/bowarc/lumin/rele
                  at /rustc/22f247c6f3ed388cb702d01c2ff27da658a8b353\library\core\src\ops\function.rs:250
     note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
     error: process didn't exit successfully: `D:\Dev\Rust\projects\lumin\target\debug\installer.exe` (exit code: 101)
-
-
 */
 
-fn test() {
-    let client = reqwest::blocking::ClientBuilder::new()
-        .user_agent("Lumin installer")
-        .build()
-        .unwrap();
 
-    let resp = client
-        .get(GH_API_RELEASE_URL)
-        .send()
-        .expect("request failed");
 
-    if resp.status() != 200 {
-        println!("Status error: {}", resp.status());
-    }
-
-    println!("{:#?}", resp.json::<Vec<models::gh_releases::Release>>());
-}
-
-fn download_latest_release(mut target_path: std::path::PathBuf) {
-    if !target_path.exists() {
-        println!("Given dir does not exists.. creating it.. {target_path:?}");
-        std::fs::create_dir_all(target_path.clone()).unwrap();
-    }
-    if !target_path.is_absolute() {
-        let old = target_path.clone();
-        target_path = target_path.canonicalize().unwrap();
-        if target_path.display().to_string().starts_with("\\\\?\\") {
-            target_path =
-                std::path::PathBuf::from(target_path.display().to_string().replace("\\\\?\\", ""))
-        }
-
-        println!("Path is not absolute.. {old:?} -> {target_path:?}");
-    }
-    println!("Installing components to {target_path:?}");
-
-    let client = reqwest::blocking::ClientBuilder::new()
-        .user_agent("Bowarc's Lumin installer")
-        .build()
-        .unwrap();
-
-    let releases_resp = client
-        .get(GH_API_RELEASE_URL)
-        .send()
-        .expect("Could not get the release data");
-
-    if releases_resp.status() != 200 {
-        eprintln!(
-            "could not get the releases data (status: {})",
-            releases_resp.status()
-        );
-        return;
-    }
-
-    let releases = releases_resp
-        .json::<Vec<models::gh_releases::Release>>()
-        .unwrap();
-
-    println!("Listing releases");
-    for (idx, release) in releases.iter().enumerate() {
-        println!(
-            "Release {idx}\nName: {}\nTag: {}\nDescription: {}\nDate: {}\n\n",
-            release.name, release.tag_name, release.body, release.published_at
-        )
-    }
-
-    let latest_release = releases.get(0).unwrap();
-    println!("Downloading assets ...");
-    for asset in latest_release.assets.iter() {
-        let start_time = std::time::Instant::now();
-        print!("Downloading {} ..\r", asset.name);
-        std::io::stdout().flush().unwrap();
-
-        let resp = client
-            .get(asset.browser_download_url.clone())
-            .send()
-            .expect("request failed");
-
-        let body = resp.bytes().expect("body invalid");
-        // THERE IS A BUG SOMEWHERE ARROUND HERE WHERE BIG FILES TIME OUT
-
-        std::fs::write(target_path.join(asset.name.clone()), &body).unwrap();
-        println!(
-            "Downloading {} .. Done ({} bytes in {:.2}s)",
-            asset.name,
-            body.len(),
-            start_time.elapsed().as_secs_f32()
-        );
-    }
-
-    println!("Done");
-
+#[tokio::main]
+async fn main() {
     // ask to create a lnk on desktop
     // ask to create an entry in the start menu dir
 
@@ -134,44 +45,16 @@ fn download_latest_release(mut target_path: std::path::PathBuf) {
     // https://docs.rs/indicatif/latest/indicatif/ ?
     // https://docs.rs/console/latest/console/ ?
     // https://docs.rs/rfd/latest/rfd/ ?
-}
 
-#[tokio::main]
-async fn main() {
-    // https://github.com/Bowarc/Lumin/releases/download/0.1.3/lumin_mpv.exe
-
-    // let client = reqwest::blocking::ClientBuilder::new()
-    //     .user_agent("Bowarc's Lumin installer")
-    //     .build()
-    //     .unwrap();
-
-    // let resp = client
-    //     .get("https://github.com/Bowarc/Lumin/releases/download/0.1.3/lumin_mpv.exe")
-    //     .send()
-    //     .expect("Could not get the release data");
-
-    // if resp.status() != 200 {
-    //     eprintln!(
-    //         "could not get the releases data (status: {})",
-    //         resp.status()
-    //     );
-    //     return;
-    // }
-
-    // let body = resp.bytes().expect("body invalid");
-
-    // std::fs::write(".\\mpv.exe", &body).unwrap();
-    // println!("Ok");
-
-    // download_latest_release(std::path::PathBuf::from("downloads/"))
-    if let Err(e) = download_latest_release_test1(std::path::PathBuf::from("downloads/")).await{
+    if let Err(e) = download_latest_release(std::path::PathBuf::from("downloads/")).await{
         println!("Lumin installer ran into an error:\n{e}\nStopping installation");
     }
     
 }
 
-async fn download_latest_release_test1(mut download_path: std::path::PathBuf)-> Result<(), String> {
+async fn download_latest_release(mut download_path: std::path::PathBuf)-> Result<(), String> {
     use futures_util::stream::StreamExt;
+    
     if !download_path.exists() {
         println!("Given dir does not exists.. creating it.. {download_path:?}");
         std::fs::create_dir_all(download_path.clone()).map_err(|reason| format!("Could not create directory '{download_path:?}', reason: {reason}"))?;

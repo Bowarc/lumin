@@ -10,13 +10,19 @@ mod animations;
 mod app;
 mod dvar_cache;
 mod error;
+mod tray;
 mod ui;
 mod utils;
+
+lazy_static::lazy_static! {
+    static ref APP: std::sync::Arc<std::sync::Mutex<app::App>> = std::sync::Arc::new(std::sync::Mutex::new(app::App::default()));
+}
 
 fn main() {
     shared::logger::init(None);
 
-    workerw_tests();
+    // workerw_tests();
+    menu_test()
 
     // let options = eframe::NativeOptions {
     //     initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
@@ -98,4 +104,40 @@ fn workerw_tests() {
 
     //     // child_in.write("ls\n".as_bytes()).unwrap();
     // }
+}
+
+fn menu_test() {
+    let options = eframe::NativeOptions {
+        initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
+        resizable: false,
+        centered: true,
+        vsync: true,
+        decorated: false,
+        transparent: true,
+        // always_on_top: true,
+        default_theme: eframe::Theme::Dark,
+
+        ..Default::default()
+    };
+    // let mut app = app::App::default();
+    loop {
+        let command = APP.lock().unwrap().tray_menu.update(); // tray::Command implements Copy
+
+        // let command = tray::Command::Open;
+        match command {
+            tray::Command::Open => {
+                eframe::run_native(
+                    "Client",
+                    options.clone(),
+                    Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
+                )
+                .unwrap();
+            }
+            tray::Command::Exit => {
+                println!("Exiting main loop");
+                break;
+            }
+            tray::Command::None => {}
+        }
+    }
 }

@@ -12,7 +12,6 @@ const VIDEO_FILE_EXTENSIONS: &[&str] = &[
 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
 pub struct Ui {
-    app: crate::app::App,
     notify: egui_notify::Toasts,
 }
 
@@ -36,7 +35,6 @@ impl Ui {
         cc.egui_ctx.set_style(style);
 
         Self {
-            app: crate::app::App::default(),
             notify: egui_notify::Toasts::default()
                 .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
         }
@@ -150,13 +148,14 @@ impl Ui {
         _frame: &mut eframe::Frame,
         _content_rect: eframe::epaint::Rect,
     ) {
+        let mut app = crate::APP.lock().unwrap();
         egui::Area::new("my_area")
             // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
             .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
             .show(ctx, |ui| {
                 ui.add(egui::Label::new(egui::WidgetText::RichText(
-                    egui::RichText::new(self.app.state.str_anim.get_text())
-                        .color(self.app.state.str_anim.get_color())
+                    egui::RichText::new(app.state.str_anim.get_text())
+                        .color(app.state.str_anim.get_color())
                         .text_style(egui::TextStyle::Monospace),
                 )));
             });
@@ -169,13 +168,14 @@ impl Ui {
         _frame: &mut eframe::Frame,
         _content_rect: eframe::epaint::Rect,
     ) {
+        let mut app = crate::APP.lock().unwrap();
+
         ui.vertical_centered(|ui| {
             if ui
                 .button(egui::RichText::new("New background").size(20.))
                 .clicked()
             {
-                self.app
-                    .backgrounds
+                app.backgrounds
                     .push(crate::app::background::Background::default());
             }
         });
@@ -183,8 +183,9 @@ impl Ui {
         // All created backgrounds
         let mut todelete = vec![];
 
-        for index in 0..self.app.backgrounds.len() {
-            let bg = self.app.backgrounds.get_mut(index).unwrap();
+        for index in 0..app.backgrounds.len() {
+            let mut bg = app.backgrounds.get_mut(index).unwrap().clone();
+            // let mut dvar_cache = app.dvar_cache.clone();
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label(format!("Background {}", index + 1));
@@ -207,7 +208,7 @@ impl Ui {
                     .width(200.)
                     .show_ui(ui, |ui| {
                         if let Ok(monitors_var) =
-                            self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
+                            app.dvar_cache.get(&shared::vars::VarId::MonitorList)
                         {
                             let monitors = monitors_var.monitor_list().unwrap();
                             for (m_i, monitor) in monitors.iter().enumerate() {
@@ -227,8 +228,7 @@ impl Ui {
                         }
                     });
                 ui.label(
-                    if let Ok(monitors_var) =
-                        self.app.dvar_cache.get(&shared::vars::VarId::MonitorList)
+                    if let Ok(monitors_var) = app.dvar_cache.get(&shared::vars::VarId::MonitorList)
                     {
                         let selected_monitor = monitors_var
                             .monitor_list()
@@ -277,13 +277,15 @@ impl Ui {
 
             ui.horizontal(|ui| {
                 if ui.button("Send").clicked() {
-                    match self.app.setup_bg(index) {
+                    match app.setup_bg(index) {
                         Ok((monitor, content)) => self.notify.success(format!(
                             "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {}",
                             content.to_string()
                         )),
                         Err(e) => self.notify.error(format!("Could not send request\n{e}")),
                     };
+                } else {
+                    *app.backgrounds.get_mut(index).unwrap() = bg;
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
@@ -294,12 +296,13 @@ impl Ui {
             });
 
             ui.separator();
+            // println!("{bg:?}");
         }
 
         // A bit ugly but i think it's the best way
         {
             todelete.iter().for_each(|index| {
-                if let Err(e) = self.app.remove_bg(*index) {
+                if let Err(e) = app.remove_bg(*index) {
                     self.notify
                         .warning(e)
                         .set_duration(Some(std::time::Duration::from_secs(4)));
@@ -311,7 +314,13 @@ impl Ui {
 
 impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.app.update(&mut self.notify);
+        let mut app = crate::APP.lock().unwrap();
+        app.update(&mut self.notify);
+        if crate::tray::Command::Exit == app.tray_menu.update() {
+            frame.close()
+        }
+
+        drop(app);
 
         // ctx.set_debug_on_hover(true);
         ctx.request_repaint();
@@ -344,9 +353,12 @@ impl eframe::App for Ui {
                 .shrink(4.0);
                 let mut content_ui = ui.child_ui(content_rect, *ui.layout());
                 // if self.app.state.is_running() {
+
                 self.render_ui(&mut content_ui, ctx, frame, content_rect);
                 self.render_daemon_health(ui, ctx, frame, content_rect);
-                self.notify.show(ctx)
+                // self.notify.show(ctx)
+                // ctx.settings_ui(ui);
+
                 // } else {
                 //     self.render_waiting_screen(&mut content_ui, frame, content_rect)
                 // }

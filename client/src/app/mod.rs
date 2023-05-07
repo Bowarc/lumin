@@ -6,6 +6,7 @@ pub struct App {
     pub state: state::State<state::AppState>,
     pub dvar_cache: crate::dvar_cache::DVarCache,
     pub backgrounds: Vec<background::Background>,
+    pub tray_menu: crate::tray::Menu,
 }
 
 impl App {
