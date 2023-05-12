@@ -13,7 +13,7 @@ The thing is.. users will probably don't want to download wallpapers themselves.
 
 Is the daemon usefull ?
 
-i might be for playlist but if you're only gonna set a single video in repeat-inf, it's not gonna do sht
+it might be for playlist but if you're only gonna set a single video in repeat-inf, it's not gonna do sht
 
 I guess create stats ? that could be fun
 
