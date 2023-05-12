@@ -6,13 +6,18 @@
 #[macro_use]
 extern crate log;
 
-mod animations;
+// mod animations;
 mod app;
-mod dvar_cache;
+// mod dvar_cache;
 mod error;
+
+mod id;
+mod monitor;
 mod tray;
 mod ui;
 mod utils;
+mod wallpaper;
+mod window_manager;
 
 lazy_static::lazy_static! {
     static ref APP: std::sync::Arc<std::sync::Mutex<app::App>> = std::sync::Arc::new(std::sync::Mutex::new(app::App::default()));
@@ -60,8 +65,6 @@ fn workerw_tests() {
         .stdout(std::process::Stdio::piped())
         .spawn()
         .unwrap();
-
-    let exit_status = child.wait().unwrap();
 
     debug!("{child:?}");
 
@@ -119,7 +122,12 @@ fn menu_test() {
 
         ..Default::default()
     };
-    // let mut app = app::App::default();
+    eframe::run_native(
+        "Lumin",
+        options.clone(),
+        Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
+    )
+    .unwrap();
     loop {
         let command = APP.lock().unwrap().tray_menu.update(); // tray::Command implements Copy
 

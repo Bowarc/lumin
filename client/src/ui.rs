@@ -1,6 +1,5 @@
 use eframe::{egui, emath, epaint};
 
-// static VIDEO_FILE_EXTENSIONS: &'static [str] = &["mp4", "MOV", "mov"];
 #[rustfmt::skip]
 const VIDEO_FILE_EXTENSIONS: &[&str] = &[
     "mp4", "MP4",
@@ -11,7 +10,21 @@ const VIDEO_FILE_EXTENSIONS: &[&str] = &[
 
 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
+pub enum BackgroundIdeaActivationState {
+    NotConnected,
+    Requested,
+    Running { id: crate::id::ID },
+}
+
+struct BackgroundIdea {
+    screen_name: String,
+    monitor_index: usize,
+    content_path: String,
+    activation_state: crate::app::state::State<BackgroundIdeaActivationState>,
+}
+
 pub struct Ui {
+    backgrounds: Vec<BackgroundIdea>,
     notify: egui_notify::Toasts,
 }
 
@@ -35,6 +48,7 @@ impl Ui {
         cc.egui_ctx.set_style(style);
 
         Self {
+            backgrounds: vec![],
             notify: egui_notify::Toasts::default()
                 .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
         }
@@ -141,25 +155,25 @@ impl Ui {
         });
     }
 
-    fn render_daemon_health(
-        &mut self,
-        _ui: &mut egui::Ui,
-        ctx: &egui::Context,
-        _frame: &mut eframe::Frame,
-        _content_rect: eframe::epaint::Rect,
-    ) {
-        let mut app = crate::APP.lock().unwrap();
-        egui::Area::new("my_area")
-            // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
-            .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
-            .show(ctx, |ui| {
-                ui.add(egui::Label::new(egui::WidgetText::RichText(
-                    egui::RichText::new(app.state.str_anim.get_text())
-                        .color(app.state.str_anim.get_color())
-                        .text_style(egui::TextStyle::Monospace),
-                )));
-            });
-    }
+    // fn render_daemon_health(
+    //     &mut self,
+    //     _ui: &mut egui::Ui,
+    //     ctx: &egui::Context,
+    //     _frame: &mut eframe::Frame,
+    //     _content_rect: eframe::epaint::Rect,
+    // ) {
+    //     let mut app = crate::APP.lock().unwrap();
+    //     egui::Area::new("my_area")
+    //         // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
+    //         .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
+    //         .show(ctx, |ui| {
+    //             ui.add(egui::Label::new(egui::WidgetText::RichText(
+    //                 egui::RichText::new(app.state.str_anim.get_text())
+    //                     .color(app.state.str_anim.get_color())
+    //                     .text_style(egui::TextStyle::Monospace),
+    //             )));
+    //         });
+    // }
 
     fn render_ui(
         &mut self,
@@ -175,18 +189,24 @@ impl Ui {
                 .button(egui::RichText::new("New background").size(20.))
                 .clicked()
             {
-                app.backgrounds
-                    .push(crate::app::background::Background::default());
+                self.backgrounds.push(BackgroundIdea {
+                    screen_name: "Yes".into(),
+                    monitor_index: 0,
+                    content_path: "".into(),
+                    activation_state:
+                        crate::app::state::State::<BackgroundIdeaActivationState>::default(),
+                });
             }
         });
 
-        // All created backgrounds
-        let mut todelete = vec![];
+        let mut index = 0;
 
-        for index in 0..app.backgrounds.len() {
-            let mut bg = app.backgrounds.get_mut(index).unwrap().clone();
-            // let mut dvar_cache = app.dvar_cache.clone();
+        while index < self.backgrounds.len() {
+            let mut deleted = false;
+
+            let bg = self.backgrounds.get_mut(index).unwrap();
             ui.separator();
+            // first line, display background index and status
             ui.horizontal(|ui| {
                 ui.label(format!("Background {}", index + 1));
 
@@ -194,66 +214,61 @@ impl Ui {
                     // Can maybe be swapped to bg.status
 
                     ui.add(egui::Label::new(egui::WidgetText::RichText(
-                        egui::RichText::new(bg.state.str_anim.get_text())
-                            .color(bg.state.str_anim.get_color())
+                        egui::RichText::new(bg.activation_state.text.clone())
+                            .color(bg.activation_state.color)
                             .text_style(egui::TextStyle::Monospace),
                     )));
 
                     ui.label("Status: ")
                 });
             });
+            // Display and select monitor
             ui.horizontal(|ui| {
                 egui::ComboBox::from_id_source(index)
                     .selected_text(format!("{:?}", bg.monitor_index))
                     .width(200.)
                     .show_ui(ui, |ui| {
-                        if let Ok(monitors_var) =
-                            app.dvar_cache.get(&shared::vars::VarId::MonitorList)
-                        {
-                            let monitors = monitors_var.monitor_list().unwrap();
-                            for (m_i, monitor) in monitors.iter().enumerate() {
-                                ui.selectable_value(
-                                    &mut bg.monitor_index,
-                                    m_i,
-                                    format!(
-                                        "name{}, x{}y{}, w{}h{}",
-                                        monitor.name,
-                                        monitor.position.0,
-                                        monitor.position.1,
-                                        monitor.size.0,
-                                        monitor.size.1,
-                                    ),
-                                );
-                            }
+                        // if let Ok(monitors) = app.wallpaper.wm.get_screen_list() {
+                        let monitors = app.wallpaper.wm.get_screen_list();
+                        for (m_i, monitor) in monitors.iter().enumerate() {
+                            ui.selectable_value(
+                                &mut bg.monitor_index,
+                                m_i,
+                                format!(
+                                    "{}\nx{}y{}, w{}h{}",
+                                    monitor.name,
+                                    monitor.position.0,
+                                    monitor.position.1,
+                                    monitor.size.0,
+                                    monitor.size.1,
+                                ),
+                            );
                         }
                     });
-                ui.label(
-                    if let Ok(monitors_var) = app.dvar_cache.get(&shared::vars::VarId::MonitorList)
-                    {
-                        let selected_monitor = monitors_var
-                            .monitor_list()
-                            .unwrap()
-                            .get(bg.monitor_index)
-                            .unwrap();
+                ui.label({
+                    // if let Ok(monitors) = Ok(app.wallpaper.wm.get_screen_list()) {
+                    let monitors = app.wallpaper.wm.get_screen_list();
+                    let selected_monitor = monitors.get(bg.monitor_index).unwrap();
 
-                        format!(
-                            "{}, {}, size: w{} h{}",
-                            selected_monitor.name,
-                            selected_monitor.direction(),
-                            selected_monitor.size.0,
-                            selected_monitor.size.1
-                        )
-                    } else {
-                        let txt = "Unable to retreive monitor info from daemon";
-                        // self.notify.warning(txt);
-                        String::from(txt)
-                    },
-                );
+                    format!(
+                        "{}, {}, size: w{} h{}",
+                        selected_monitor.name,
+                        selected_monitor.direction(),
+                        selected_monitor.size.0,
+                        selected_monitor.size.1
+                    )
+                    // } else {
+                    //     let txt = "Unable to retreive monitor info from daemon";
+                    //     // self.notify.warning(txt);
+                    //     String::from(txt)
+                    // },
+                    // );
+                });
             });
-
+            // Display and select content
             ui.horizontal(|ui| {
                 ui.label("Content:");
-                ui.text_edit_singleline(&mut bg.content);
+                ui.text_edit_singleline(&mut bg.content_path);
                 if ui.button("Open").clicked() {
                     let dll_file = rfd::AsyncFileDialog::new()
                         .add_filter("Videos", VIDEO_FILE_EXTENSIONS)
@@ -264,7 +279,7 @@ impl Ui {
 
                     if let Some(..) = path {
                         // self.dll_path_button_text = path.as_ref().unwrap().file_name();
-                        bg.content = path
+                        bg.content_path = path
                             .unwrap()
                             .path()
                             .as_os_str()
@@ -274,53 +289,68 @@ impl Ui {
                     }
                 }
             });
-
+            // Last line, send and remove the background
             ui.horizontal(|ui| {
                 if ui.button("Send").clicked() {
-                    match app.setup_bg(index) {
-                        Ok((monitor, content)) => self.notify.success(format!(
-                            "Sent a backgroud request to daemon\nScreen: {monitor:?}\nContent: {}",
-                            content.to_string()
-                        )),
-                        Err(e) => self.notify.error(format!("Could not send request\n{e}")),
+                    match app.setup_bg(bg.monitor_index, bg.content_path.clone()) {
+                        Ok((id, monitor, content)) => {
+                            self.notify.success(format!(
+                                "Updating background . .\nScreen: {monitor:?}\nContent: {}",
+                                content
+                                    .as_path()
+                                    .display()
+                                    .to_string()
+                                    .replace("\\\\?\\", "")
+                            ));
+
+                            bg.activation_state.set_connected(id)
+                        }
+                        Err(e) => {
+                            self.notify.error(format!("Could not send request\n{e}"));
+                        }
                     };
-                } else {
-                    *app.backgrounds.get_mut(index).unwrap() = bg;
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
                     if ui.button("delete").clicked() {
-                        todelete.push(index)
+                        deleted = true;
                     }
                 });
             });
-
             ui.separator();
-            // println!("{bg:?}");
-        }
 
-        // A bit ugly but i think it's the best way
-        {
-            todelete.iter().for_each(|index| {
-                if let Err(e) = app.remove_bg(*index) {
-                    self.notify
-                        .warning(e)
-                        .set_duration(Some(std::time::Duration::from_secs(4)));
-                };
-            });
+            if deleted {
+                if let BackgroundIdeaActivationState::Running { id } = bg.activation_state.inner {
+                    if let Err(e) = app.remove_bg(id) {
+                        error!("Could not delete background ({id:?}) Index: {index} due to: {e}")
+                    } else {
+                        // Connected
+                        debug!("Removing background {index} (Connected)");
+                        self.backgrounds.remove(index);
+                    }
+                } else {
+                    // Client side only
+                    debug!("Removing background {index} (Client side only)");
+
+                    self.backgrounds.remove(index);
+                }
+            } else {
+                index += 1;
+            }
         }
     }
 }
 
 impl eframe::App for Ui {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        let mut app = crate::APP.lock().unwrap();
-        app.update(&mut self.notify);
-        if crate::tray::Command::Exit == app.tray_menu.update() {
-            frame.close()
+        // Update app and release lock when done
+        {
+            let mut app = crate::APP.lock().unwrap();
+            app.update(&mut self.notify);
+            if crate::tray::Command::Exit == app.tray_menu.update() {
+                frame.close()
+            }
         }
-
-        drop(app);
 
         // ctx.set_debug_on_hover(true);
         ctx.request_repaint();
@@ -355,8 +385,8 @@ impl eframe::App for Ui {
                 // if self.app.state.is_running() {
 
                 self.render_ui(&mut content_ui, ctx, frame, content_rect);
-                self.render_daemon_health(ui, ctx, frame, content_rect);
-                // self.notify.show(ctx)
+                // self.render_daemon_health(ui, ctx, frame, content_rect);
+                self.notify.show(ctx)
                 // ctx.settings_ui(ui);
 
                 // } else {
