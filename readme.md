@@ -51,7 +51,7 @@ https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-
 - easy graphical installer for install (duh) and version managing
 - run on startup with the last background played, easy with the installer and a config file
 - tray menu ?
-- Stop the daemon is the client disconnects and there is no backrounds playing (It's useless to keep the daemon
+- Stop the daemon if the client disconnects and there is no backrounds playing (It's useless to keep the daemon
   running if it's just gonna be idle)
 
 # Dev questions: 
