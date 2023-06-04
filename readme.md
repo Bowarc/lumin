@@ -1,3 +1,15 @@
+# Refactoring
+Ngl the fire kinda burned out for this project, the project could probalby be finished rather simply, i just don't want to work on it for now.
+The video downloader works, just need to hook it up to the app struct and it's all good (render some cool info in ui too)
+
+the installer is working but has no ui, i'll make a clean one later with my lib binstaller
+
+You can dm me anytime at Bowarc#4159(discord) or at Bowarc@proton.me
+
+
+# The V1
+
+
 test
 
 soo.?.
