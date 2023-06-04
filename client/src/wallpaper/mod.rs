@@ -1,6 +1,4 @@
-pub mod content;
 pub mod player;
-// mod utils;
 
 fn mpv_dir() -> std::path::PathBuf {
     let lumin_root = {
@@ -105,7 +103,10 @@ impl Wallpaper {
             .map_err(crate::error::PlayerError::from)?;
 
         // Set the position&size of the workerW to fit exacly the screen
-        self.wm.prepare_for_monitor(monitor.clone());
+        if let Err(e) = self.wm.prepare_for_monitor(monitor.clone()) {
+            error!("{e}")
+        }
+
         // crate::wallpaper::utils::move_window(target_window_id, monitor.position, monitor.size);
 
         // Still need to restore the worker on close tho ^
@@ -256,6 +257,7 @@ impl Wallpaper {
         // debug!("Remaining players: {:?}", self.players)
     }
     pub fn on_exit(&mut self) {
+        debug!("Cleaning wallapaper");
         let ids = self
             .players
             .iter()

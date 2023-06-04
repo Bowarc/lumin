@@ -1,33 +1,53 @@
-#![cfg_attr(
-    all(target_os = "windows", not(debug_assertions)),
-    windows_subsystem = "windows"
-)]
+// #![cfg_attr(
+//     all(target_os = "windows", not(debug_assertions)),
+//     windows_subsystem = "windows"
+// )]
+#![feature(stmt_expr_attributes)]
 
 #[macro_use]
 extern crate log;
 
-// mod animations;
 mod app;
-// mod dvar_cache;
 mod error;
-
 mod id;
+mod logger;
 mod monitor;
+mod threading;
 mod tray;
 mod ui;
-mod utils;
 mod wallpaper;
 mod window_manager;
+mod ytdl;
 
 lazy_static::lazy_static! {
     static ref APP: std::sync::Arc<std::sync::Mutex<app::App>> = std::sync::Arc::new(std::sync::Mutex::new(app::App::default()));
 }
 
 fn main() {
-    shared::logger::init(None);
+    logger::init(Some("lumin.log"));
+
+    let mut dl_state = ytdl::DownloadState::default();
+
+    dl_state
+        .start_download(&ytdl::DownloadConfig {
+            url: "https://www.youtube.com/watch?v=_HpmJr__7Jk".into(),
+            file_name: "pando.mp4".into(),
+        })
+        .unwrap();
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        dl_state.update();
+        dbg!(dl_state.get_value());
+        if let ytdl::DownloadState::Done = dl_state {
+            break;
+        }
+    }
+    // let handle = ytdl::start_download("https://www.youtube.com/watch?v=_HpmJr__7Jk", "pando.mp4");
+    // std::thread::sleep(std::time::Duration::from_secs(30));
 
     // workerw_tests();
-    menu_test()
+    // menu_test()
 
     // let options = eframe::NativeOptions {
     //     initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
@@ -110,37 +130,11 @@ fn workerw_tests() {
 }
 
 fn menu_test() {
-    let options = eframe::NativeOptions {
-        initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
-        resizable: false,
-        centered: true,
-        vsync: true,
-        decorated: false,
-        transparent: true,
-        // always_on_top: true,
-        default_theme: eframe::Theme::Dark,
-
-        ..Default::default()
-    };
-    eframe::run_native(
-        "Lumin",
-        options.clone(),
-        Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
-    )
-    .unwrap();
+    run_ui();
     loop {
         let command = APP.lock().unwrap().tray_menu.update(); // tray::Command implements Copy
-
-        // let command = tray::Command::Open;
         match command {
-            tray::Command::Open => {
-                eframe::run_native(
-                    "Client",
-                    options.clone(),
-                    Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
-                )
-                .unwrap();
-            }
+            tray::Command::Open => run_ui(),
             tray::Command::Exit => {
                 println!("Exiting main loop");
                 break;
@@ -148,4 +142,25 @@ fn menu_test() {
             tray::Command::None => {}
         }
     }
+    APP.lock().unwrap().on_exit();
+}
+
+fn run_ui() {
+    eframe::run_native(
+        "Lumin",
+        eframe::NativeOptions {
+            initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
+            resizable: false,
+            centered: true,
+            vsync: true,
+            decorated: false,
+            transparent: true,
+            // always_on_top: true,
+            default_theme: eframe::Theme::Dark,
+
+            ..Default::default()
+        },
+        Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
+    )
+    .unwrap();
 }

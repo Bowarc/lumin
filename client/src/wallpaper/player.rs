@@ -30,17 +30,14 @@ impl Player {
     }
 
     pub fn is_dead(&mut self) -> bool {
-        // false
-        // self.process.
-        // self.process.
-        // self.process.try_wait().is_ok()
         match self.process.try_wait() {
             Ok(Some(status)) => {
                 debug!("Player ({id:?})exited with: {status}", id = self.id);
                 true
             }
             Ok(None) => {
-                // debug!("Player is still running");
+                // debug!("Player ({id:?}) is still running", id = self.id);
+
                 false
             }
             Err(e) => {

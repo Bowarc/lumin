@@ -12,7 +12,7 @@ path = "src/main.rs"
 eframe = "0.21.3"
 egui-notify = "0.6.0"
 log = "0.4.17"
-shared = {path = "../shared"}
+# shared = {path = "../shared"}
 sysinfo = "0.28.4"
 thiserror = "1.0.40"
 futures = "0.3.28"
@@ -21,6 +21,12 @@ url = "2.3.1"
 tray-item = { git  = "https://github.com/Bowarc/tray-item-rs" }
 lazy_static = "1.4.0"
 winapi = { version = "0.3.9", features = ["winuser"] }
+
+log-panics = { version = "2.1.0", features = ["with-backtrace"] }
+fern = { version = "0.6.2", features = ["colored", "chrono"] }
+chrono = "0.4.24"
+rusty_ytdl = { version = "0.6.0", features = ["blocking"] }
+tokio = "1.28.1"
 
 
 [build-dependencies]

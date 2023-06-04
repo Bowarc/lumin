@@ -18,7 +18,7 @@ impl Monitor {
     }
     // Tries to create a direction to represend the position of the screen
     pub fn direction(&self) -> String {
-        const ERROR_MARGIN: i32 = 10;
+        const ERROR_MARGIN: i32 = 15;
 
         let mut output = String::new();
 
@@ -41,10 +41,10 @@ impl Monitor {
         if self.position.1.abs() < ERROR_MARGIN {
             // Center y
             output.push_str("Center")
-        } else if self.position.1.is_positive() {
+        } else if self.position.1.is_negative() {
             // Top
             output.push_str("Top")
-        } else if self.position.1.is_negative() {
+        } else if self.position.1.is_positive() {
             // Bottom
             output.push_str("Bottom")
         } else {

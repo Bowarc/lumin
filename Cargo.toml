@@ -1,9 +1,9 @@
 [workspace]
 members = [
     "installer",
-    "shared",
+    # "shared",
     "client",
-    "daemon",
+    # "daemon",
     "workerw_fetcher" # a replacement for the daemon
 ]
 exclude = [

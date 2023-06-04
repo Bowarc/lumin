@@ -48,7 +48,7 @@ impl Explorer {
     fn get_windows_explorer_process(&mut self) -> Option<&sysinfo::Process> {
         use sysinfo::SystemExt;
         // let mut system = ;
-        self.system.refresh_all();
+        self.system.refresh_processes();
 
         let explorer_processes = self
             .system
@@ -85,14 +85,16 @@ impl crate::window_manager::WindowManager for Explorer {
     // don't care about what is the error, if this faills, exit the programm
     fn update(&mut self) -> Result<(), ()> {
         use sysinfo::{ProcessExt, SystemExt};
-        let mut system = sysinfo::System::new();
-        system.refresh_all();
+
+        self.system.refresh_processes();
+
         if let WorkerWHandle::Received {
             hwnd: _,
             explorer_pid,
         } = self.workerw_handle
         {
-            if system
+            if self
+                .system
                 .process(explorer_pid)
                 .filter(|p| {
                     // Verify that it's the right `explorer.exe`
@@ -118,7 +120,7 @@ impl crate::window_manager::WindowManager for Explorer {
 
             match fetcher_process.try_wait() {
                 Ok(Some(status)) => {
-                    println!("fetcher exited with: {status}");
+                    debug!("fetcher exited with: {status}");
 
                     if status.success() {
                         use std::io::BufRead;
@@ -127,17 +129,27 @@ impl crate::window_manager::WindowManager for Explorer {
                         let mut line = String::new();
 
                         child_out.read_line(&mut line).unwrap();
-                        println!("fetcher wrote '{}' before dying", line);
+                        debug!("fetcher wrote '{}' before dying", line);
+
+                        let hwnd = line.parse::<usize>().unwrap();
 
                         self.workerw_handle = WorkerWHandle::Received {
-                            hwnd: line.parse().unwrap(),
+                            hwnd,
                             explorer_pid: *explorer_pid,
-                        }
+                        };
+
+                        info!("Explorer's workerw is now: {hwnd}");
+
+                        let (pos, size) = utils::get_window_pos_size(hwnd as windef::HWND);
+
+                        debug!("WorkerW default pos: {pos:?}, size: {size:?}");
+                        self.default_workerw_position = pos;
+                        self.default_workerw_size = size;
                     } else {
                         // when the process fail, looking at the stdout (and reading it like the above is doing)
                         // does not crash the current program as it's like channels and the client is only reading what it receied,
                         // client is not atempting to call remote process
-                        println!("fetcher failled");
+                        warn!("fetcher failled");
 
                         // Reset Fetcher handle
                         self.workerw_handle = WorkerWHandle::Void
@@ -164,12 +176,12 @@ impl crate::window_manager::WindowManager for Explorer {
 
             path.set_file_name(FETCHER_EXE_PATH);
 
-            let child = std::process::Command::new(path)
+            let child = std::process::Command::new(path.clone())
                 .stderr(std::process::Stdio::null())
                 .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .spawn()
-                .unwrap();
+                .unwrap_or_else(|_| panic!("Could not find worker at path: {path:?}"));
 
             let explorer_process = self.get_windows_explorer_process().unwrap();
 
@@ -251,6 +263,8 @@ impl crate::window_manager::WindowManager for Explorer {
 
         // Un-comment this if the message above turn false
 
+        debug!("Cleaning Explorer.exe");
+
         if let WorkerWHandle::Received {
             hwnd,
             explorer_pid: _,
@@ -261,8 +275,15 @@ impl crate::window_manager::WindowManager for Explorer {
                 self.default_workerw_position,
                 self.default_workerw_size,
             );
+            debug!("Successfully restored Explorer.Exe's WorkerW id {hwnd} to pos: {}x{} and size: {}x{}",
+                self.default_workerw_position.0,
+                self.default_workerw_position.1,
+                self.default_workerw_size.0,
+                self.default_workerw_size.1
+            );
             Ok(())
         } else {
+            error!("Could not restore WorkerW to it's original pos");
             Err(String::from("Could not get WorkerW"))
         }
     }

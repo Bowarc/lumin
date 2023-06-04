@@ -12,7 +12,6 @@ const TITLE_BAR_HEIGHT: f32 = 32.0;
 
 pub enum BackgroundIdeaActivationState {
     NotConnected,
-    Requested,
     Running { id: crate::id::ID },
 }
 
@@ -26,6 +25,7 @@ struct BackgroundIdea {
 pub struct Ui {
     backgrounds: Vec<BackgroundIdea>,
     notify: egui_notify::Toasts,
+    dl_cfg: crate::ytdl::DownloadConfig,
 }
 
 /// Normal functions
@@ -51,6 +51,7 @@ impl Ui {
             backgrounds: vec![],
             notify: egui_notify::Toasts::default()
                 .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
+            dl_cfg: crate::ytdl::DownloadConfig::default(),
         }
     }
 }
@@ -155,26 +156,6 @@ impl Ui {
         });
     }
 
-    // fn render_daemon_health(
-    //     &mut self,
-    //     _ui: &mut egui::Ui,
-    //     ctx: &egui::Context,
-    //     _frame: &mut eframe::Frame,
-    //     _content_rect: eframe::epaint::Rect,
-    // ) {
-    //     let mut app = crate::APP.lock().unwrap();
-    //     egui::Area::new("my_area")
-    //         // .fixed_pos(egui::pos2(100.0, frame.info().window_info.size.y - 50.))
-    //         .anchor(eframe::emath::Align2::RIGHT_BOTTOM, [-10., -6.0])
-    //         .show(ctx, |ui| {
-    //             ui.add(egui::Label::new(egui::WidgetText::RichText(
-    //                 egui::RichText::new(app.state.str_anim.get_text())
-    //                     .color(app.state.str_anim.get_color())
-    //                     .text_style(egui::TextStyle::Monospace),
-    //             )));
-    //         });
-    // }
-
     fn render_ui(
         &mut self,
         ui: &mut egui::Ui,
@@ -189,13 +170,18 @@ impl Ui {
                 .button(egui::RichText::new("New background").size(20.))
                 .clicked()
             {
-                self.backgrounds.push(BackgroundIdea {
-                    screen_name: "Yes".into(),
-                    monitor_index: 0,
-                    content_path: "".into(),
-                    activation_state:
-                        crate::app::state::State::<BackgroundIdeaActivationState>::default(),
-                });
+                if self.backgrounds.is_empty() {
+                    self.backgrounds.push(BackgroundIdea {
+                        screen_name: "Yes".into(),
+                        monitor_index: 0,
+                        content_path: "".into(),
+                        activation_state:
+                            crate::app::state::State::<BackgroundIdeaActivationState>::default(),
+                    });
+                } else {
+                    self.notify
+                        .warning("Only one animated background is possible for now");
+                }
             }
         });
 
@@ -292,7 +278,12 @@ impl Ui {
             // Last line, send and remove the background
             ui.horizontal(|ui| {
                 if ui.button("Send").clicked() {
-                    match app.setup_bg(bg.monitor_index, bg.content_path.clone()) {
+                    let id = match bg.activation_state.inner {
+                        BackgroundIdeaActivationState::NotConnected => None,
+                        BackgroundIdeaActivationState::Running { id } => Some(id),
+                    };
+
+                    match app.update_bg(id, bg.monitor_index, bg.content_path.clone()) {
                         Ok((id, monitor, content)) => {
                             self.notify.success(format!(
                                 "Updating background . .\nScreen: {monitor:?}\nContent: {}",
@@ -306,7 +297,8 @@ impl Ui {
                             bg.activation_state.set_connected(id)
                         }
                         Err(e) => {
-                            self.notify.error(format!("Could not send request\n{e}"));
+                            self.notify
+                                .error(format!("Could not create background\n{e}"));
                         }
                     };
                 }
@@ -348,7 +340,7 @@ impl eframe::App for Ui {
             let mut app = crate::APP.lock().unwrap();
             app.update(&mut self.notify);
             if crate::tray::Command::Exit == app.tray_menu.update() {
-                frame.close()
+                frame.close();
             }
         }
 

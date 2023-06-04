@@ -21,27 +21,25 @@ pub struct Menu {
 impl Menu {
     pub fn new() -> Self {
         let mut tray = tray_item::TrayItem::new(
-            "Tray Example",
+            "Lumin",
             tray_item::IconSource::Resource("name-of-icon-in-rc-file"),
         )
         .unwrap();
 
-        tray.add_label("Tray Label").unwrap();
-
-        tray.add_menu_item("Hello", || {
-            println!("Hello!");
-        })
-        .unwrap();
-
-        tray.inner_mut().add_separator().unwrap();
-
         let (sender, receiver) = std::sync::mpsc::channel();
 
-        let quit_tx = sender.clone();
-        tray.add_menu_item("Quit", move || {
-            quit_tx.send(Message::Quit).unwrap();
+        let green_tx = sender.clone();
+        tray.add_menu_item("Open", move || {
+            green_tx.send(Message::Open).unwrap();
         })
         .unwrap();
+
+        // tray.add_menu_item("Hello", || {
+        //     println!("Hello!");
+        // })
+        // .unwrap();
+
+        tray.inner_mut().add_separator().unwrap();
 
         let red_tx = sender.clone();
         tray.add_menu_item("Red", move || {
@@ -55,9 +53,11 @@ impl Menu {
         })
         .unwrap();
 
-        let green_tx = sender;
-        tray.add_menu_item("Open", move || {
-            green_tx.send(Message::Open).unwrap();
+        tray.inner_mut().add_separator().unwrap();
+
+        let quit_tx = sender.clone();
+        tray.add_menu_item("Quit", move || {
+            quit_tx.send(Message::Quit).unwrap();
         })
         .unwrap();
 
@@ -107,17 +107,3 @@ impl Default for Menu {
         Self::new()
     }
 }
-
-// impl std::ops::Deref for Menu {
-//     type Target = Menu;
-
-//     fn deref(&self) -> &Self::Target {
-//         &self
-//     }
-// }
-
-// impl std::ops::DerefMut for Menu {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         self
-//     }
-// }
