@@ -4,10 +4,11 @@ pub mod state;
 pub struct App {
     pub wallpaper: crate::wallpaper::Wallpaper,
     pub tray_menu: crate::tray::Menu,
+    pub downloader: crate::ytdl::DownloadState,
     dl_state: crate::ytdl::DownloadState,
 }
 impl App {
-    pub fn update(&mut self, notify: &mut egui_notify::Toasts) {
+    pub fn update(&mut self, _notify: &mut egui_notify::Toasts) {
         if self.wallpaper.wm.update().is_err() {
             error!("Window manager encountered an error while updating, please check logs for more info")
         }

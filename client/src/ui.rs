@@ -16,7 +16,6 @@ pub enum BackgroundIdeaActivationState {
 }
 
 struct BackgroundIdea {
-    screen_name: String,
     monitor_index: usize,
     content_path: String,
     activation_state: crate::app::state::State<BackgroundIdeaActivationState>,
@@ -47,8 +46,35 @@ impl Ui {
         .into();
         cc.egui_ctx.set_style(style);
 
+        // populate the ui background list to keep displaying it event after the app is closed and re-opened
+        let app = crate::APP.lock().unwrap();
+
+        let mut backgrounds = vec![];
+
+        for running_bg in app.wallpaper.players.iter() {
+            let mut activation_state =
+                crate::app::state::State::<BackgroundIdeaActivationState>::default();
+            activation_state.set_connected(running_bg.id);
+
+            backgrounds.push(BackgroundIdea {
+                monitor_index: app
+                    .wallpaper
+                    .screens
+                    .iter()
+                    .position(|s| s == &running_bg.monitor)
+                    .unwrap(),
+                content_path: running_bg
+                    .content_path
+                    .as_path()
+                    .display()
+                    .to_string()
+                    .replace("\\\\?\\", ""),
+                activation_state,
+            })
+        }
+
         Self {
-            backgrounds: vec![],
+            backgrounds,
             notify: egui_notify::Toasts::default()
                 .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
             dl_cfg: crate::ytdl::DownloadConfig::default(),
@@ -156,7 +182,7 @@ impl Ui {
         });
     }
 
-    fn render_ui(
+    fn render_backgrounds(
         &mut self,
         ui: &mut egui::Ui,
         _ctx: &egui::Context,
@@ -172,7 +198,6 @@ impl Ui {
             {
                 if self.backgrounds.is_empty() {
                     self.backgrounds.push(BackgroundIdea {
-                        screen_name: "Yes".into(),
                         monitor_index: 0,
                         content_path: "".into(),
                         activation_state:
@@ -193,21 +218,7 @@ impl Ui {
             let bg = self.backgrounds.get_mut(index).unwrap();
             ui.separator();
             // first line, display background index and status
-            ui.horizontal(|ui| {
-                ui.label(format!("Background {}", index + 1));
 
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                    // Can maybe be swapped to bg.status
-
-                    ui.add(egui::Label::new(egui::WidgetText::RichText(
-                        egui::RichText::new(bg.activation_state.text.clone())
-                            .color(bg.activation_state.color)
-                            .text_style(egui::TextStyle::Monospace),
-                    )));
-
-                    ui.label("Status: ")
-                });
-            });
             // Display and select monitor
             ui.horizontal(|ui| {
                 egui::ComboBox::from_id_source(index)
@@ -249,6 +260,17 @@ impl Ui {
                     //     String::from(txt)
                     // },
                     // );
+                });
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                    // Can maybe be swapped to bg.status
+
+                    ui.add(egui::Label::new(egui::WidgetText::RichText(
+                        egui::RichText::new(bg.activation_state.text.clone())
+                            .color(bg.activation_state.color)
+                            .text_style(egui::TextStyle::Monospace),
+                    )));
+
+                    ui.label("Status: ")
                 });
             });
             // Display and select content
@@ -331,6 +353,66 @@ impl Ui {
             }
         }
     }
+    fn render_downloader(
+        &mut self,
+        ui: &mut egui::Ui,
+        _ctx: &egui::Context,
+        _frame: &mut eframe::Frame,
+        _content_rect: eframe::epaint::Rect,
+    ) {
+        let mut app = crate::APP.lock().unwrap();
+        app.downloader.update();
+
+        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label("Output file name:");
+            ui.add_space(10.);
+            ui.add(
+                egui::widgets::TextEdit::singleline(&mut self.dl_cfg.file_name)
+                    .desired_width(150.)
+                    .horizontal_align(eframe::egui::Align::Max),
+            );
+            ui.label(".mp4")
+        });
+        ui.add_space(20.);
+        ui.horizontal(|ui| {
+            ui.label("Youtube link:");
+            ui.add(
+                egui::widgets::TextEdit::singleline(&mut self.dl_cfg.url)
+                    .hint_text("Video link or video ID"),
+            );
+        });
+        ui.add_space(20.);
+
+        ui.horizontal(|ui| {
+            if app.downloader.is_running() {
+                ui.add(
+                    eframe::egui::widgets::ProgressBar::new(
+                        app.downloader.get_value().unwrap() / 100.,
+                    )
+                    .animate(true)
+                    .show_percentage()
+                    .desired_width(200.),
+                );
+            } else {
+                ui.add_space(450.);
+                if ui
+                    .add(eframe::egui::widgets::Button::new("Start").min_size((100., 100.).into()))
+                    .clicked()
+                {
+                    debug!(
+                        "Starting dl with options: {:?}\n{:?}",
+                        self.dl_cfg,
+                        app.downloader.start_download(&{
+                            let mut o = self.dl_cfg.clone();
+                            o.file_name.push_str(".mp4");
+                            o
+                        })
+                    );
+                }
+            }
+        });
+    }
 }
 
 impl eframe::App for Ui {
@@ -367,16 +449,26 @@ impl eframe::App for Ui {
                 self.render_title_bar(ui, frame, title_bar_rect, "Lumin client");
 
                 // rest of the window
-                let content_rect = {
+                let bg_content_rect = {
                     let mut rect = app_rect;
                     rect.min.y = title_bar_rect.max.y;
+                    rect.max.y = app_rect.max.y / 2. + TITLE_BAR_HEIGHT / 2.;
                     rect
                 }
                 .shrink(4.0);
-                let mut content_ui = ui.child_ui(content_rect, *ui.layout());
+                let mut bg_ui = ui.child_ui(bg_content_rect, *ui.layout());
                 // if self.app.state.is_running() {
 
-                self.render_ui(&mut content_ui, ctx, frame, content_rect);
+                self.render_backgrounds(&mut bg_ui, ctx, frame, bg_content_rect);
+
+                let dl_content_rect = {
+                    let mut rect = app_rect;
+                    rect.min.y = bg_content_rect.max.y;
+                    rect
+                };
+                let mut dl_ui = ui.child_ui(dl_content_rect, *ui.layout());
+
+                self.render_downloader(&mut dl_ui, ctx, frame, dl_content_rect);
                 // self.render_daemon_health(ui, ctx, frame, content_rect);
                 self.notify.show(ctx)
                 // ctx.settings_ui(ui);

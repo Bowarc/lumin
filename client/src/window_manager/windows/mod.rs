@@ -5,7 +5,7 @@ pub mod utils;
 /*----------------NOTE------------------
  In Windows, any instance of the file
  explorer is not a process, just a
- window in the process `explorer.exe`.
+ window in the process `explorer.exe`. ! might be a toggle-able option
  This means that there can be only one
  process named `explorer.exe`.
  (if you don't run any app named 'explorer.exe')
@@ -147,7 +147,7 @@ impl crate::window_manager::WindowManager for Explorer {
                         self.default_workerw_size = size;
                     } else {
                         // when the process fail, looking at the stdout (and reading it like the above is doing)
-                        // does not crash the current program as it's like channels and the client is only reading what it receied,
+                        // does not crash the current program as it's like channels and the client is only reading what it received,
                         // client is not atempting to call remote process
                         warn!("fetcher failled");
 
@@ -168,7 +168,6 @@ impl crate::window_manager::WindowManager for Explorer {
         }
 
         if let WorkerWHandle::Void = self.workerw_handle {
-            // start it
             debug!("Starting the fetcher. . .");
 
             const FETCHER_EXE_PATH: &str = "workerw_fetcher.exe";
@@ -275,12 +274,15 @@ impl crate::window_manager::WindowManager for Explorer {
                 self.default_workerw_position,
                 self.default_workerw_size,
             );
-            debug!("Successfully restored Explorer.Exe's WorkerW id {hwnd} to pos: {}x{} and size: {}x{}",
+
+            let (x, y, w, h) = (
                 self.default_workerw_position.0,
                 self.default_workerw_position.1,
                 self.default_workerw_size.0,
-                self.default_workerw_size.1
+                self.default_workerw_size.1,
             );
+
+            debug!("Successfully restored Explorer.exe's WorkerW id {hwnd} to pos: {x}x{y} and size: {w}x{h}");
             Ok(())
         } else {
             error!("Could not restore WorkerW to it's original pos");

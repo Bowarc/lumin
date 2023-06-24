@@ -1,18 +1,18 @@
-
 #[derive(Default)]
 pub enum DownloadState {
-    #[default] Off,
-    Running { 
+    #[default]
+    Off,
+    Running {
         thread_com: crate::threading::Channel<Message>,
-        prcentage: f32 },
+        prcentage: f32,
+    },
     Done,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct DownloadConfig {
     pub url: String,
-    pub file_name: String
-    // dl_opts: String,
+    pub file_name: String, // dl_opts: String,
 }
 
 #[derive(PartialEq, Debug)]
@@ -28,8 +28,8 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
     let video_options = rusty_ytdl::VideoOptions {
         quality: rusty_ytdl::VideoQuality::Highest,
         filter: rusty_ytdl::VideoSearchOptions::Video,
-        download_options: rusty_ytdl::DownloadOptions{
-            dl_chunk_size: Some(1024 * 1024) // 1MB / packet
+        download_options: rusty_ytdl::DownloadOptions {
+            dl_chunk_size: Some(1024 * 1024), // 1MB / packet
         },
         ..Default::default()
     };
@@ -42,7 +42,7 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
         error!("Could not create video with given url: {url}");
         // panic for now, fix later
         // panic!("")
-        return Err("Could not create video with given url: {url}".into())
+        return Err("Could not create video with given url: {url}".into());
     };
 
     let video_id = video.get_video_id();
@@ -156,39 +156,46 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
         })
         .unwrap();
 
-   Ok(
-    DownloadState::Running { 
+    Ok(DownloadState::Running {
         thread_com: channel1,
-        prcentage: 0.
-    }
-    )
+        prcentage: 0.,
+    })
 }
 
-impl DownloadState{
+impl DownloadState {
     pub fn update(&mut self) {
-        if let DownloadState::Running{ thread_com, prcentage } = self{
-            while let Ok(msg) = thread_com.try_recv(){
-                match msg{
+        if let DownloadState::Running {
+            thread_com,
+            prcentage,
+        } = self
+        {
+            while let Ok(msg) = thread_com.try_recv() {
+                match msg {
                     Message::PrcentageUpdate(value) => *prcentage = value,
                 }
             }
         }
     }
-    pub fn start_download(&mut self, cfg: &DownloadConfig) -> Result<(), String>{
+    pub fn start_download(&mut self, cfg: &DownloadConfig) -> Result<(), String> {
         let new_state = start_download(cfg)?;
         *self = new_state;
 
         Ok(())
-
     }
 
     pub fn get_value(&self) -> Option<f32> {
-        if let DownloadState::Running { thread_com: _, prcentage } = self{
+        if let DownloadState::Running {
+            thread_com: _,
+            prcentage,
+        } = self
+        {
             Some(*prcentage)
-        }else{
+        } else {
             None
         }
     }
+
+    pub fn is_running(&self) -> bool{
+        matches!(self, DownloadState::Running{..})
+    }
 }
-
-

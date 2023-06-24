@@ -2,7 +2,7 @@
 //     all(target_os = "windows", not(debug_assertions)),
 //     windows_subsystem = "windows"
 // )]
-#![feature(stmt_expr_attributes)]
+// #![feature(stmt_expr_attributes)]
 
 #[macro_use]
 extern crate log;
@@ -26,48 +26,25 @@ lazy_static::lazy_static! {
 fn main() {
     logger::init(Some("lumin.log"));
 
-    let mut dl_state = ytdl::DownloadState::default();
+    // let mut dl_state = ytdl::DownloadState::default();
 
-    dl_state
-        .start_download(&ytdl::DownloadConfig {
-            url: "https://www.youtube.com/watch?v=_HpmJr__7Jk".into(),
-            file_name: "pando.mp4".into(),
-        })
-        .unwrap();
+    // dl_state
+    //     .start_download(&ytdl::DownloadConfig {
+    //         url: "https://www.youtube.com/watch?v=_HpmJr__7Jk".into(),
+    //         file_name: "pando.mp4".into(),
+    //     })
+    //     .unwrap();
 
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(1));
-        dl_state.update();
-        dbg!(dl_state.get_value());
-        if let ytdl::DownloadState::Done = dl_state {
-            break;
-        }
-    }
-    // let handle = ytdl::start_download("https://www.youtube.com/watch?v=_HpmJr__7Jk", "pando.mp4");
-    // std::thread::sleep(std::time::Duration::from_secs(30));
+    // loop {
+    //     std::thread::sleep(std::time::Duration::from_secs(1));
+    //     dl_state.update();
+    //     dbg!(dl_state.get_value());
+    //     if let ytdl::DownloadState::Done = dl_state {
+    //         break;
+    //     }
+    // }
 
-    // workerw_tests();
-    // menu_test()
-
-    // let options = eframe::NativeOptions {
-    //     initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
-    //     resizable: false,
-    //     centered: true,
-    //     vsync: true,
-    //     decorated: false,
-    //     transparent: true,
-    //     // always_on_top: true,
-    //     default_theme: eframe::Theme::Dark,
-
-    //     ..Default::default()
-    // };
-
-    // eframe::run_native(
-    //     "Lumin client",
-    //     options,
-    //     Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),
-    // )
-    // .unwrap();
+    menu_test()
 }
 
 fn workerw_tests() {
