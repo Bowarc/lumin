@@ -1,6 +1,7 @@
 <h1 align="center">
   <br>
-  <a href="http://www.amitmerchant.com/electron-markdownify"><img src="https://raw.githubusercontent.com/amitmerchant1990/electron-markdownify/master/app/img/markdownify.png" alt="Markdownify" width="200"></a>
+  <!-- Add lumin img -->
+  <img src="" alt="lumin" width="200">
   <br>
   Lumin
   <br>
@@ -17,7 +18,8 @@
   <a href="#license">License</a>
 </p>
 
-![video](./assets/demo.mp4)
+TODO: Add simple demo video
+./assets/demo.mp4
 
 ## Key Features
 
@@ -34,6 +36,7 @@
 ## Download
 
 ### Installer
+TODO: Make a page on bowarc.ovh
 You can download the installer [here](https://github.com/Bowarc/lumin) 
 
 ### Manual installation
