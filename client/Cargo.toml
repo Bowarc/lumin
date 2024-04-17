@@ -9,24 +9,38 @@ name = "lumin_client"
 path = "src/main.rs"
 
 [dependencies]
-eframe = "0.21.3"
-egui-notify = "0.6.0"
-log = "0.4.17"
-# shared = {path = "../shared"}
-sysinfo = "0.28.4"
-thiserror = "1.0.40"
-futures = "0.3.28"
-rfd = "0.11.3"
-url = "2.3.1"
-tray-item = { git  = "https://github.com/Bowarc/tray-item-rs" }
+chrono = { version = "0.4.38", default-features = false }
+eframe = "0.27.2"
+egui-notify = "0.14.0"
+fern = { version = "0.6.2", features = ["colored", "chrono"] }
+futures = { version = "0.3.30", default-features = false }
 lazy_static = "1.4.0"
+log = "0.4.21"
+log-panics = { version = "2.1.0", features = ["with-backtrace"] }
+rfd = "0.14.1"
+rusty_ytdl = { version = "0.7.1", features = ["blocking"] }
+sysinfo = { version = "0.30.10", default-features = false }
+thiserror = "1.0.58"
+tokio = "1.37.0"
+tray-item = "0.10.0"
 winapi = { version = "0.3.9", features = ["winuser"] }
 
-log-panics = { version = "2.1.0", features = ["with-backtrace"] }
-fern = { version = "0.6.2", features = ["colored", "chrono"] }
-chrono = "0.4.24"
-rusty_ytdl = { version = "0.6.0", features = ["blocking"] }
-tokio = "1.28.1"
+# eframe = "0.21.3"
+# egui-notify = "0.6.0"
+# log = "0.4.17"
+# # shared = {path = "../shared"}
+# sysinfo = "0.28.4"
+# thiserror = "1.0.40"
+# futures = "0.3.28"
+# rfd = "0.11.3"
+# # url = "2.3.1"
+# tray-item = { git  = "https://github.com/Bowarc/tray-item-rs" }
+# lazy_static = "1.4.0"
+
+# log-panics = { version = "2.1.0", features = ["with-backtrace"] }
+# chrono = "0.4.24"
+# rusty_ytdl = { version = "0.7.1", features = ["blocking"] }
+# tokio = "1.28.1"
 
 
 [build-dependencies]

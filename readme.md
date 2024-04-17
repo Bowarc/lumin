@@ -25,7 +25,7 @@ TODO: Add simple demo video
 
 * Display any video as your desktop background
 * Video download
-  - Download your video from https://youtube.com/
+  - Download videos from youtube
 * Dark/Light mode
 
 
@@ -55,9 +55,6 @@ $ ./scripts/run.sh
 
 > **Note**
 > Due to Windows limitations, you may need to add "workerw_fetcher.exe" to your AV's whitelist 
-
-
-
 
 ## Credits
 

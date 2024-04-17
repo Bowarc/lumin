@@ -1,4 +1,4 @@
-use eframe::{egui, emath, epaint};
+use eframe::egui;
 
 #[rustfmt::skip]
 const VIDEO_FILE_EXTENSIONS: &[&str] = &[
@@ -87,7 +87,7 @@ impl Ui {
     fn render_title_bar(
         &mut self,
         ui: &mut egui::Ui,
-        frame: &mut eframe::Frame,
+        egctx: &egui::Context,
         title_bar_rect: eframe::epaint::Rect,
         title: &str,
     ) {
@@ -102,17 +102,17 @@ impl Ui {
         // Paint the title:
         painter.text(
             title_bar_rect.center(),
-            emath::Align2::CENTER_CENTER,
+            eframe::emath::Align2::CENTER_CENTER,
             title,
-            epaint::FontId::proportional(20.0),
+            eframe::epaint::FontId::proportional(20.0),
             ui.style().visuals.text_color(),
         );
 
         // Paint the line under the title:
         painter.line_segment(
             [
-                title_bar_rect.left_bottom() + epaint::vec2(1.0, 0.0),
-                title_bar_rect.right_bottom() + epaint::vec2(-1.0, 0.0),
+                title_bar_rect.left_bottom() + eframe::epaint::vec2(1.0, 0.0),
+                title_bar_rect.right_bottom() + eframe::epaint::vec2(-1.0, 0.0),
             ],
             ui.visuals().widgets.noninteractive.bg_stroke,
         );
@@ -121,7 +121,8 @@ impl Ui {
         if title_bar_response.double_clicked() {
             // frame.set_maximized(!frame.info().window_info.maximized);
         } else if title_bar_response.is_pointer_button_down_on() {
-            frame.drag_window();
+            egctx.send_viewport_cmd(egui::viewport::ViewportCommand::StartDrag);
+            // frame.drag_window();
         }
 
         // Show toggle button for light/dark mode
@@ -150,14 +151,15 @@ impl Ui {
                     .on_hover_text("Close the window")
                     .clicked()
                 {
-                    frame.close();
+                    egctx.send_viewport_cmd(egui::viewport::ViewportCommand::Close);
                 }
 
-                let (hover_text, clicked_state) = if frame.info().window_info.maximized {
-                    ("Restore window", false)
-                } else {
-                    ("Maximize window", true)
-                };
+                let (hover_text, clicked_state) =
+                    if ui.input(|i| i.viewport().maximized) == Some(true) {
+                        ("Restore window", false)
+                    } else {
+                        ("Maximize window", true)
+                    };
 
                 if ui
                     .add(egui::Button::new(
@@ -166,7 +168,11 @@ impl Ui {
                     .on_hover_text(hover_text)
                     .clicked()
                 {
-                    frame.set_maximized(clicked_state);
+                    if clicked_state {
+                        egctx.send_viewport_cmd(egui::viewport::ViewportCommand::Maximized(true));
+                    } else {
+                        egctx.send_viewport_cmd(egui::viewport::ViewportCommand::Maximized(false));
+                    }
                 }
 
                 if ui
@@ -176,7 +182,7 @@ impl Ui {
                     .on_hover_text("Minimize the window")
                     .clicked()
                 {
-                    frame.set_minimized(true);
+                    egctx.send_viewport_cmd(egui::viewport::ViewportCommand::Minimized(true));
                 }
             });
         });
@@ -422,7 +428,7 @@ impl eframe::App for Ui {
             let mut app = crate::APP.lock().unwrap();
             app.update(&mut self.notify);
             if crate::tray::Command::Exit == app.tray_menu.update() {
-                frame.close();
+                ctx.send_viewport_cmd(egui::viewport::ViewportCommand::Close);
             }
         }
 
@@ -446,7 +452,7 @@ impl eframe::App for Ui {
                     rect.max.y = rect.min.y + TITLE_BAR_HEIGHT;
                     rect
                 };
-                self.render_title_bar(ui, frame, title_bar_rect, "Lumin client");
+                self.render_title_bar(ui, ctx, title_bar_rect, "Lumin client");
 
                 // rest of the window
                 let bg_content_rect = {

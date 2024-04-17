@@ -144,7 +144,6 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
                             error!("{:?}", e);
                             panic!("");
                         };
-                        
                     }else{
                         warn!("Received empty chunk, probably the end of the download, quitting");
                         break;
@@ -152,7 +151,6 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
                 }
             });
             debug!("The download finished");
-            
         })
         .unwrap();
 
@@ -195,7 +193,7 @@ impl DownloadState {
         }
     }
 
-    pub fn is_running(&self) -> bool{
-        matches!(self, DownloadState::Running{..})
+    pub fn is_running(&self) -> bool {
+        matches!(self, DownloadState::Running { .. })
     }
 }
