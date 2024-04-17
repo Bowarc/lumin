@@ -2,7 +2,7 @@
 use std::io::Write as _;
 
 mod models;
-const REPO_URL: &str = "github.com/Bowarc/Lumin";
+const REPO_URL: &str = "https://github.com/Bowarc/Lumin";
 const GH_API_RELEASE_URL: &str = "https://api.github.com/repos/bowarc/lumin/releases";
 /*          NOTES
     While testing i found that for the url GH_API_RELEASE_URL, releases where by chronological order
@@ -145,7 +145,7 @@ async fn download_latest_release(mut download_path: std::path::PathBuf)-> Result
             .progress_chars("#>-"));
         pb.set_message(format!("Downloading {}", asset.name));
 
-        // download chunks
+        // download file
         let mut file = std::fs::File::create(download_path.join(asset.name.clone()))
             .map_err(|reason |format!(
                 "Could not create file '{path:?}', reason: {reason}",
@@ -154,6 +154,7 @@ async fn download_latest_release(mut download_path: std::path::PathBuf)-> Result
         let mut downloaded: u64 = 0;
         let mut stream = asset_resp.bytes_stream();
 
+        // Download file's chunks
         while let Some(item) = stream.next().await {
             let chunk = item.map_err(
                 |reason |
