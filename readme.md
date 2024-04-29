@@ -7,7 +7,7 @@
   <br>
 </h1>
 
-<h4 align="center">Animated background manager made with <a href="http://rust-lang.org" target="_blank">Rust</a>.</h4>
+<h4 align="center">Animated wallpaper manager made with <a href="http://rust-lang.org" target="_blank">Rust</a>.</h4>
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
