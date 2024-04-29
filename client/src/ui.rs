@@ -1,5 +1,7 @@
 use eframe::{egui, emath, epaint};
 
+const TARGET_FPS: f64 = 1.; // Fps when idle
+
 #[rustfmt::skip]
 const VIDEO_FILE_EXTENSIONS: &[&str] = &[
     "mp4", "MP4",
@@ -25,6 +27,7 @@ pub struct Ui {
     backgrounds: Vec<BackgroundIdea>,
     notify: egui_notify::Toasts,
     dl_cfg: crate::ytdl::DownloadConfig,
+    last_update: std::time::Instant
 }
 
 /// Normal functions
@@ -78,6 +81,7 @@ impl Ui {
             notify: egui_notify::Toasts::default()
                 .with_margin(egui::vec2(0., TITLE_BAR_HEIGHT + 4.)), // + margin
             dl_cfg: crate::ytdl::DownloadConfig::default(),
+            last_update: std::time::Instant::now()
         }
     }
 }
@@ -278,15 +282,14 @@ impl Ui {
                 ui.label("Content:");
                 ui.text_edit_singleline(&mut bg.content_path);
                 if ui.button("Open").clicked() {
-                    let dll_file = rfd::AsyncFileDialog::new()
+                    let video_file = rfd::AsyncFileDialog::new()
                         .add_filter("Videos", VIDEO_FILE_EXTENSIONS)
                         .set_directory(std::env::current_dir().unwrap())
                         .pick_file();
 
-                    let path = futures::executor::block_on(dll_file);
+                    let path = futures::executor::block_on(video_file);
 
                     if let Some(..) = path {
-                        // self.dll_path_button_text = path.as_ref().unwrap().file_name();
                         bg.content_path = path
                             .unwrap()
                             .path()
@@ -427,7 +430,13 @@ impl eframe::App for Ui {
         }
 
         // ctx.set_debug_on_hover(true);
-        ctx.request_repaint();
+
+        if self.last_update.elapsed().as_secs_f64() > 1./ TARGET_FPS{
+            ctx.request_repaint();
+            self.last_update= std::time::Instant::now()
+        }
+
+
         egui::CentralPanel::default()
             .frame(
                 eframe::egui::Frame::none()
