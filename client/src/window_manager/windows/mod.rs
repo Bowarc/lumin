@@ -1,4 +1,4 @@
-use winapi::shared::windef;
+use winapi::shared::windef::HWND;
 
 pub mod utils;
 
@@ -46,7 +46,7 @@ impl Explorer {
     }
 
     fn get_windows_explorer_process(&mut self) -> Option<&sysinfo::Process> {
-        use sysinfo::SystemExt;
+        // use sysinfo::SystemExt;
         // let mut system = ;
         self.system.refresh_processes();
 
@@ -84,7 +84,7 @@ impl Explorer {
 impl crate::window_manager::WindowManager for Explorer {
     // don't care about what is the error, if this faills, exit the programm
     fn update(&mut self) -> Result<(), ()> {
-        use sysinfo::{ProcessExt, SystemExt};
+        // use sysinfo::{ProcessExt, SystemExt};
 
         self.system.refresh_processes();
 
@@ -140,7 +140,7 @@ impl crate::window_manager::WindowManager for Explorer {
 
                         info!("Explorer's workerw is now: {hwnd}");
 
-                        let (pos, size) = utils::get_window_pos_size(hwnd as windef::HWND);
+                        let (pos, size) = utils::get_window_pos_size(hwnd as HWND);
 
                         debug!("WorkerW default pos: {pos:?}, size: {size:?}");
                         self.default_workerw_position = pos;
@@ -211,7 +211,7 @@ impl crate::window_manager::WindowManager for Explorer {
         // This won't do anything if there is no need to
         self.update().ok()?;
 
-        use sysinfo::ProcessExt;
+        // use sysinfo::ProcessExt;
 
         if let WorkerWHandle::Received { hwnd, explorer_pid } = self.workerw_handle {
             if let Some(explorer_process) = self.get_windows_explorer_process() {
@@ -242,7 +242,7 @@ impl crate::window_manager::WindowManager for Explorer {
             explorer_pid: _,
         } = self.workerw_handle
         {
-            utils::move_window(hwnd as windef::HWND, monitor.position, monitor.size);
+            utils::move_window(hwnd as HWND, monitor.position, monitor.size);
             Ok(())
         } else {
             // warn!("The workerw fetcher is still running");
@@ -270,7 +270,7 @@ impl crate::window_manager::WindowManager for Explorer {
         } = self.workerw_handle
         {
             utils::move_window(
-                hwnd as windef::HWND,
+                hwnd as HWND,
                 self.default_workerw_position,
                 self.default_workerw_size,
             );
@@ -292,34 +292,43 @@ impl crate::window_manager::WindowManager for Explorer {
 }
 
 pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
-    // TODO check command line, check original file path etc..
-
-    use sysinfo::ProcessExt;
-
-    let mut ok = true;
-
     if p.name() != "explorer.exe" {
-        // debug!("Explorer check for {p:?} failled on `p.name() != \"explorer.exe\"`");
-        ok = false
-    } else if p.exe().as_os_str().to_str().map(|p| p.to_lowercase())
-        != Some("c:\\windows\\explorer.exe".to_string())
-        && p.exe().as_os_str().to_str().map(|p| p.to_lowercase())
-            != Some("c:/windows/explorer.exe".to_string())
-    {
-        debug!("Explorer check for {p:?} failled on `p.exe().as_os_str().to_str() != Some(\"C:\\Windows\\explorer.exe\")`: {:?}", p.exe().as_os_str().to_str());
-        ok = false
-    } else if p.cmd().len() != 1 {
+        return false;
+    }
+
+    let Some(exe) = p.exe() else {
+        return false;
+    };
+
+    let Some(exe) = exe.as_os_str().to_str() else {
+        return false;
+    };
+
+    let exe = exe.to_lowercase();
+
+    if &exe != r"c:\windows\explorer.exe" && &exe != "c:/windows/explorer.exe" {
+        debug!("Explorer check for {p:?} failled on `p.exe().as_os_str().to_str() != Some(\"C:\\Windows\\explorer.exe\")`: {exe:?}");
+        return false;
+    }
+
+    if p.cmd().len() != 1 {
         debug!(
             "Explorer check for {p:?} failled on `if p.cmd().len() !=1` ({})",
             p.cmd().len()
         );
-        ok = false
-    } else if p.cmd().get(0).unwrap().to_lowercase() != r"c:\windows\explorer.exe"
-        && p.cmd().get(0).unwrap().to_lowercase() != r"c:/windows/explorer.exe"
-    {
-        debug!("Explorer check for {p:?} failled on `p.cmd().get(0).unwrap().to_lowercase() != \"c:\\windows\\explorer.exe\"` ({})", p.cmd().get(0).unwrap().to_lowercase());
-        ok = false
+
+        return false;
     }
 
-    ok
+    let Some(first_command) = p.cmd().get(0) else {
+        unreachable!();
+    };
+
+    let first_command = first_command.to_lowercase();
+
+    if first_command != r"c:\windows\explorer.exe" && exe != r"c:/windows/explorer.exe" {
+        return false;
+    }
+
+    true
 }

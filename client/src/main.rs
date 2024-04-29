@@ -126,15 +126,25 @@ fn run_ui() {
     eframe::run_native(
         "Lumin",
         eframe::NativeOptions {
-            initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
-            resizable: false,
+            // initial_window_size: Some(eframe::egui::vec2(800.0, 600.0)), /*x800y450 is 16:9*/
+            // resizable: false,
+            // centered: true,
+            // vsync: true,
+            // decorated: false,
+            // transparent: true,
+            // always_on_top: true,
+            follow_system_theme: true,
+            run_and_return: true,
             centered: true,
             vsync: true,
-            decorated: false,
-            transparent: true,
-            // always_on_top: true,
-            default_theme: eframe::Theme::Dark,
+            viewport: eframe::egui::ViewportBuilder::default()
+                .with_inner_size(eframe::egui::vec2(800.0, 600.0))
+                .with_decorations(false)
+                .with_transparent(true)
+                .with_resizable(false)
+                .with_title("Lumin"),
 
+            // default_theme: eframe::Theme::Dark,
             ..Default::default()
         },
         Box::new(|cc| Box::<ui::Ui>::new(ui::Ui::new(cc))),

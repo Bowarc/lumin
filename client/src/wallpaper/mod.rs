@@ -1,13 +1,15 @@
 pub mod player;
 
-fn mpv_dir() -> std::path::PathBuf {
+const MPV_EXE_NAME: &str = "lumin_mpv.exe";
+
+fn mpv_dir() -> Option<std::path::PathBuf> {
     let lumin_root = {
-        let mut o = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        o.pop(); //remove the `/daemon`
-        o
+        let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.pop();
+        path
     };
 
-    let o = std::path::PathBuf::from(format!(
+    let research_path = std::path::PathBuf::from(format!(
         "{}\\research\\mpv\\mpv.exe",
         lumin_root
             .as_path()
@@ -15,19 +17,21 @@ fn mpv_dir() -> std::path::PathBuf {
             .to_string()
             .replace("\\\\?\\", "")
     ));
-    debug!("{o:?}");
 
-    // assert!(o.exists());
+    debug!("{research_path:?}");
 
-    if o.exists() {
-        o
-    } else {
-        const MPV_EXE_NAME: &str = "lumin_mpv.exe";
-        let mut o = std::env::current_exe().unwrap();
-        o.set_file_name(MPV_EXE_NAME);
-        assert!(o.exists());
-        o
+    if research_path.exists() {
+        return Some(research_path);
     }
+
+    let mut path = std::env::current_exe().unwrap();
+    path.set_file_name(MPV_EXE_NAME);
+
+    if !path.exists() {
+        return None;
+    }
+
+    Some(path)
 }
 
 #[derive(Debug)]
@@ -73,16 +77,22 @@ impl Wallpaper {
                     "Could not get workerW id from the window manager".to_string(),
                 ))?;
 
-        let pretty_mpv_path = crate::wallpaper::mpv_dir()
+        let mpv_path = mpv_dir().ok_or(crate::error::PlayerError::Verification(
+            "Could not get find mpv".to_string(),
+        ))?;
+
+        let pretty_mpv_path = mpv_path
             .as_path()
             .display()
             .to_string()
             .replace("\\\\?\\", "");
+
         let pretty_content = content_path
             .as_path()
             .display()
             .to_string()
             .replace("\\\\?\\", "");
+
         let args = vec![
             format!("--player-operation-mode=pseudo-gui"),
             format!("--force-window=yes"),

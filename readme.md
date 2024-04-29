@@ -1,87 +1,85 @@
-# Refactoring
-Ngl the fire kinda burned out for this project, the project could probalby be finished rather simply, i just don't want to work on it for now.
-The video downloader works, just need to hook it up to the app struct and it's all good (render some cool info in ui too)
+<h1 align="center">
+  <br>
+  <!-- Add lumin img -->
+  <img src="" alt="lumin" width="200">
+  <br>
+  Lumin
+  <br>
+</h1>
 
-the installer is working but has no ui, i'll make a clean one later with my lib binstaller
+<h4 align="center">Animated background manager made with <a href="http://rust-lang.org" target="_blank">Rust</a>.</h4>
 
-You can dm me anytime at Bowarc#4159(discord) or at Bowarc@proton.me
+<p align="center">
+  <a href="#key-features">Key Features</a> •
+  <a href="#how-to-use">How To Use</a> •
+  <a href="#download">Download</a> •
+  <a href="#credits">Credits</a> •
+  <a href="#related">Related</a> •
+  <a href="#license">License</a>
+</p>
 
+TODO: Add simple demo video
+./assets/demo.mp4
 
-# The V1
+## Key Features
 
-
-test
-
-soo.?.
-
-what project structure do i go towards,
-
-I don't know much about web stuff, so i don't think i can do something like [livewallpaper](https://github.com/DaZiYuan/livewallpaper/)
-
-but something offline with a daemon+foreground app (a bit like [my WTBC project](https://github.com/Bowarc/WTBC/)) is more of my skill range
-
-On app launch, if the daemon is not started, it silently runs it.
-
-The thing is.. users will probably don't want to download wallpapers themselves.
-
-
-Is the daemon usefull ?
-
-it might be for playlist but if you're only gonna set a single video in repeat-inf, it's not gonna do sht
-
-I guess create stats ? that could be fun
-
-# Animated desktop background changer
-
-## State - Working but not finished
-
-- [x] Client - Daemon comunication (used std::net::TcpStream and the Daemon has a std::net::TcpListener)
-- [x] Client boots up daemon and connects to it on startup
-- [x] Client can build, validate and send background setup requests to the daemon
-- [x] Daemon can apply a given video as the desktop background (fixed options for now)
-- [x] Client can tell daemon to add and remove backgrounds
-- [x] Better ux with [egui notify](https://github.com/ItsEthra/egui-notify)
-- [x] Daemon informs the client of the currently playing backgrounds when client connects
-- [x] Daemon never crashes (well, sort of.. due to how explorer and windows works, the daemon has to restart in some cases, so i make the client somewhat smart with daemon crashes) 
-- [x] Daemon tells the client whenever it gets into a critical or client retated error.
-- [x] Daemon handles mpv process cleanly (no phantom processes)
-- [ ] Daemon logs it's actions
-- [ ] Multiple animated backgrounds
-
-https://user-images.githubusercontent.com/63136904/233821402-66cf7828-48ba-4efb-8f36-633233083b74.mp4
+* Display any video as your desktop background
+* Video download
+  - Download videos from youtube
+* Dark/Light mode
 
 
-# Memory/cpu usage
-- Memory: 180MB / 200MB, ~80MB GPU - in debug
-- Cpu: bewteen 1.5% and 3%  - in debug
+## How To Use
 
+### TODO
 
-# Ideas
-- Youtube downloader !!MPV WORKS IF YOU GIVE IT A YT LINK, So you can still make a downloader, but make it a
-  toggle-able option
-- Settings for sound volume, speed, etc..
-- gh pages for easy download
-- gh actions for simple compilation & versioning with pages
-- easy graphical installer for install (duh) and version managing
-- run on startup with the last background played, easy with the installer and a config file
-- tray menu ?
-- Stop the daemon if the client disconnects and there is no backrounds playing (It's useless to keep the daemon
-  running if it's just gonna be idle)
+## Download
 
-# Dev questions: 
-- About he installer: 
-    - As the installer will be used to update and uninstall, how does the installer keeps track of the existing
-      Lumin install(s, multiple is usless btw)
-    - There will be one installer, any installer update(there will not be a lot) will be managed through a self 
-      updater 
-- About the client, 
-    - A global refactor where the client never stops and serves the purpose of the actual client + daemon
-      but there is still the question of: How do the client manage WorkerW not found error on windows?
-        There is 2 solution to this: 
-        - 1, 'WorkerW is fetch by another tiny program'
-        - 2, 'FIX THE FCING METHOD'
-      This could allow us to:
-        - Remove all the client - daemon comunication code, would simplify error management etc.
-        - Put the client in the tray menu and only close the window when the user 'stops' the app
+### Installer
+TODO: Make a page on bowarc.ovh
+You can download the installer [here](https://github.com/Bowarc/lumin) 
 
+### Manual installation
+To clone and run this application, you'll need [Git](https://git-scm.com) and [Rust](https://rust-lang.org/)
+
+```bash
+# Clone this repository
+$ git clone https://github.com/Bowarc/lumin
+
+# Go into the repository
+$ cd lumin
+
+# Run the app
+$ ./scripts/run.sh
+```
+
+> **Note**
+> Due to Windows limitations, you may need to add "workerw_fetcher.exe" to your AV's whitelist 
+
+## Credits
+
+This software uses the following open source packages:
+
+<!-- - [egui](http://docs.rs/egui) -->
+<!-- - [egui-notify](https://docs.rs/egui-notify) -->
+
+## Related
+
+[weebp](https://github.com/Francesco149/weebp) - More developper oriented version of lumin
+
+## You may also like...
+
+- [Painter](https://github.com/bowarc/painter) - A simple programm that allows you to draw on your screen
+- [chess_game](https://github.com/bowarc/chess_game) - A multiplayer chess game
+
+## License
+
+TODO
+
+---
+
+> [Bowarc.ovh](https://www.bowarc.ovh) &nbsp;&middot;&nbsp;
+> GitHub [@Bowarc](https://github.com/Bowarc) &nbsp;&middot;&nbsp;
+> Twitter [@bowarc_](https://twitter.com/bowarc_) &nbsp;&middot;&nbsp;
+> Discord @Bowarc
 
