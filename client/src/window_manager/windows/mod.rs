@@ -5,7 +5,7 @@ pub mod utils;
 /*----------------NOTE------------------
  In Windows, any instance of the file
  explorer is not a process, just a
- window in the process `explorer.exe`. ! might be a toggle-able option
+ window in the process `explorer.exe`. ! might be a toggle-able option (yes it is)
  This means that there can be only one
  process named `explorer.exe`.
  (if you don't run any app named 'explorer.exe')
@@ -27,27 +27,22 @@ pub enum WorkerWHandle {
 
 #[derive(Default)]
 pub struct Explorer {
-    // pub pid: usize,
-    // pub workerw: usize,
     pub workerw_handle: WorkerWHandle,
     pub default_workerw_position: (i32, i32),
     pub default_workerw_size: (i32, i32),
     pub system: sysinfo::System, // implement a way to handle the workerw fetcher
 }
 
-// -> Option<>
 impl Explorer {
     // creates a new self, this is different than default because it runs an update
     pub fn new() -> Option<Self> {
-        // todo!("Add a way to handle workerw fetcher");
         let mut o = Self::default();
-        crate::window_manager::WindowManager::update(&mut o).ok()?;
+        super::WindowManager::update(&mut o).ok()?;
         Some(o)
     }
 
     fn get_windows_explorer_process(&mut self) -> Option<&sysinfo::Process> {
         // use sysinfo::SystemExt;
-        // let mut system = ;
         self.system.refresh_processes();
 
         let explorer_processes = self
@@ -67,11 +62,9 @@ impl Explorer {
         if explorer_processes.is_empty() || explorer_processes.len() > 1 {
             // If this EVER executes, nuke my house
 
-            // This should only executes if the user kills `explorer.exe` after the daemon started it
+            // This should only executes if the user kills `explorer.exe`
             error!("Could not get explorer.exe {explorer_processes:#?}");
 
-            // crate::EXIT_REQUESTED.store(true, std::sync::atomic::Ordering::Relaxed);
-            error!("[CRITICAL] Requesting an exit");
             None
         } else {
             let process = explorer_processes.get(0).copied();
@@ -157,8 +150,6 @@ impl crate::window_manager::WindowManager for Explorer {
                 }
                 Ok(None) => {
                     println!("Fetcher is still running");
-                    // let res = fetcher_process.wait();
-                    // println!("result: {res:?}");
                 }
                 Err(e) => {
                     println!("Could not get exit code");
@@ -211,19 +202,17 @@ impl crate::window_manager::WindowManager for Explorer {
         // This won't do anything if there is no need to
         self.update().ok()?;
 
-        // use sysinfo::ProcessExt;
-
         if let WorkerWHandle::Received { hwnd, explorer_pid } = self.workerw_handle {
-            if let Some(explorer_process) = self.get_windows_explorer_process() {
-                if explorer_pid == explorer_process.pid() {
-                    Some(hwnd)
-                } else {
-                    self.workerw_handle = WorkerWHandle::Void;
-                    error!("The saved pid is not the right one");
-                    None
-                }
-            } else {
+            let Some(explorer_process) = self.get_windows_explorer_process() else {
                 error!("Could not get the explorer process");
+                return None;
+            };
+
+            if explorer_pid == explorer_process.pid() {
+                Some(hwnd)
+            } else {
+                self.workerw_handle = WorkerWHandle::Void;
+                error!("The saved pid is not the right one");
                 None
             }
         } else {
@@ -258,7 +247,6 @@ impl crate::window_manager::WindowManager for Explorer {
 
         // So i was planing on restoring workerW's original size to counter this problem, butmy dbg tool
         // tells me that it auto re-shaped itself right after i delete the mpv process lmao
-        //         ");
 
         // Un-comment this if the message above turn false
 
@@ -311,24 +299,26 @@ pub fn validate_explorer_process(p: &sysinfo::Process) -> bool {
         return false;
     }
 
-    if p.cmd().len() != 1 {
-        debug!(
-            "Explorer check for {p:?} failled on `if p.cmd().len() !=1` ({})",
-            p.cmd().len()
-        );
+    // {
+    //     if p.cmd().len()  {
+    //         debug!(
+    //             "Explorer check for {p:?} failled on `if p.cmd().len() !=1` ({})",
+    //             p.cmd().len()
+    //         );
 
-        return false;
-    }
+    //         return false;
+    //     }
 
-    let Some(first_command) = p.cmd().get(0) else {
-        unreachable!();
-    };
+    //     let Some(first_command) = p.cmd().get(0) else {
+    //         unreachable!();
+    //     };
 
-    let first_command = first_command.to_lowercase();
+    //     let first_command = first_command.to_lowercase();
 
-    if first_command != r"c:\windows\explorer.exe" && exe != r"c:/windows/explorer.exe" {
-        return false;
-    }
+    //     if first_command != r"c:\windows\explorer.exe" && exe != r"c:/windows/explorer.exe" {
+    //         return false;
+    //     }
+    // }
 
     true
 }

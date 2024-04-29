@@ -18,6 +18,7 @@ mod ui;
 mod wallpaper;
 mod window_manager;
 mod ytdl;
+mod utils;
 
 lazy_static::lazy_static! {
     static ref APP: std::sync::Arc<std::sync::Mutex<app::App>> = std::sync::Arc::new(std::sync::Mutex::new(app::App::default()));

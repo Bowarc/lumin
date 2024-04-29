@@ -8,8 +8,8 @@ pub enum Error {
 
 #[derive(thiserror::Error, Debug)]
 pub enum WallpaperError {
-    #[error("The search for the given method did not find any match")]
-    PlayerDontExist(crate::wallpaper::PlayerFindMethod),
+    #[error("The search for the given id did not find any match")]
+    PlayerDontExist(crate::id::ID),
 }
 
 #[derive(thiserror::Error, Debug)]

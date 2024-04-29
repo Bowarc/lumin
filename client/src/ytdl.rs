@@ -18,7 +18,9 @@ pub struct DownloadConfig {
 #[derive(PartialEq, Debug)]
 pub enum Message {
     PrcentageUpdate(f32),
+    // Error(String)
 }
+
 fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
     let url = cfg.url.to_string();
     let file_name = cfg.file_name.to_string();
@@ -42,7 +44,7 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
         error!("Could not create video with given url: {url}");
         // panic for now, fix later
         // panic!("")
-        return Err("Could not create video with given url: {url}".into());
+        return Err(format!("Could not create video with given url: {url}"));
     };
 
     let video_id = video.get_video_id();
@@ -57,8 +59,7 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
                 debug!("Fetching stream");
                 let download_stream = video.stream().await.unwrap();
 
-                // be sure that the target path exists
-                // let mut target_directory = { std::path::PathBuf::from("D:/Dev/rust/projects/lumin/downloads/") };
+                // Make sure that the target path exists
                 let mut target_directory = { std::path::PathBuf::from("downloads/") };
 
                 if !target_directory.exists() {
@@ -79,6 +80,7 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
                             format!("Could not canonicalize '{target_directory:?}', reason: {reason}")
                         })
                         .unwrap();
+                    
                     if target_directory
                         .display()
                         .to_string()
@@ -95,7 +97,7 @@ fn start_download(cfg: &DownloadConfig) -> Result<DownloadState, String> {
                     warn!("Path is not absolute.. {unabsolute_path:?} -> {target_directory:?}");
                 }
 
-                // create target file
+                // Create target file
                 let mut file = std::fs::File::create(target_directory.join(file_name.clone()))
                     .map_err(|reason| {
                         format!(

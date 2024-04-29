@@ -34,14 +34,6 @@ fn mpv_dir() -> Option<std::path::PathBuf> {
     Some(path)
 }
 
-#[derive(Debug)]
-pub enum PlayerFindMethod {
-    PlayerID(crate::id::ID),         // ID of the player
-    PlayerIndex(usize),              // Index of the player in the Wallpaper::player list
-    MonitorName(String),             // Name of the monitor struct it's playing on.
-    ContentPath(std::path::PathBuf), // Any player tha plays the path of the given media
-}
-
 pub struct Wallpaper {
     pub screens: Vec<crate::monitor::Monitor>,
     pub players: Vec<player::Player>, // currently supports only one player
@@ -138,92 +130,36 @@ impl Wallpaper {
         monitor: crate::monitor::Monitor,
         content_path: std::path::PathBuf,
     ) -> Result<(), crate::error::Error> {
-        error!("This is a placeholder method, please rework it");
+        error!("Wallpaper::update_player is a placeholder method, please rework it");
 
         // as a placeholder we're gonna kill and start a new player, but in the future
         // Please implement a messaging system between the player and it's process (check livewallpaper for an example)
 
-        self.stop_player(PlayerFindMethod::PlayerID(id))?;
+        self.stop_player(id)?;
 
         self.start_player(Some(id), monitor, content_path)?;
 
         Ok(())
     }
-    pub fn stop_player(&mut self, method: PlayerFindMethod) -> Result<(), crate::error::Error> {
-        let player_index = match method {
-            PlayerFindMethod::PlayerID(id) => {
-                let players = self
-                    .players
-                    .iter()
-                    .enumerate()
-                    .filter(|(_i, p)| p.id == id)
-                    .collect::<Vec<(usize, &player::Player)>>();
+    pub fn stop_player(&mut self, id: crate::id::ID) -> Result<(), crate::error::Error> {
+        let players = self
+            .players
+            .iter()
+            .enumerate()
+            .filter(|(_i, p)| p.id == id)
+            .collect::<Vec<(usize, &player::Player)>>();
 
-                if players.is_empty() {
-                    return Err(crate::error::WallpaperError::PlayerDontExist(method).into());
-                } else if players.len() > 1 {
-                    warn!(
-                        "Multiple player has been found with method: {method:?}, players: {:?}",
-                        self.players
-                    );
-                }
-                debug!("Found one player with mehod: {:?}", method);
+        if players.is_empty() {
+            return Err(crate::error::WallpaperError::PlayerDontExist(id).into());
+        } else if players.len() > 1 {
+            warn!(
+                "Multiple player has been found with id {id:?}, players: {:?}",
+                self.players
+            );
+        }
+        debug!("Found one player with id: {id:?}");
 
-                players.get(0).unwrap().0
-            }
-            PlayerFindMethod::PlayerIndex(index) => {
-                if self.players.get(index).is_some() {
-                    // self.players.swap_remove(index);
-                    // self.players.get_mut(index).unwrap()
-                    index
-                } else {
-                    return Err(crate::error::WallpaperError::PlayerDontExist(method).into());
-                }
-            }
-            PlayerFindMethod::MonitorName(ref name) => {
-                // self.players.retain(|player| player.monitor.name != name);
-
-                let players = self
-                    .players
-                    .iter()
-                    .enumerate()
-                    .filter(|(_i, p)| &p.monitor.name == name)
-                    .collect::<Vec<(usize, &player::Player)>>();
-
-                if players.is_empty() {
-                    return Err(crate::error::WallpaperError::PlayerDontExist(method).into());
-                } else if players.len() > 1 {
-                    warn!(
-                        "Multiple player has been found with method: {method:?}, players: {:?}",
-                        self.players
-                    );
-                }
-
-                players.get(0).unwrap().0
-                // Debug?
-            }
-            PlayerFindMethod::ContentPath(ref content) => {
-                // self.players.retain(|player| player.content_path != path);
-
-                let players = self
-                    .players
-                    .iter()
-                    .enumerate()
-                    .filter(|(_i, p)| &p.content_path == content)
-                    .collect::<Vec<(usize, &player::Player)>>();
-
-                if players.is_empty() {
-                    return Err(crate::error::WallpaperError::PlayerDontExist(method).into());
-                } else if players.len() > 1 {
-                    warn!(
-                        "Multiple player has been found with method: {method:?}, players: {:?}",
-                        self.players
-                    );
-                }
-
-                players.get(0).unwrap().0
-            }
-        };
+        let player_index = players.get(0).unwrap().0;
 
         if self.players.get(player_index).is_none() {
             error!(
@@ -238,7 +174,7 @@ impl Wallpaper {
 
         self.players.swap_remove(player_index);
 
-        debug!("Successfully killed player with method: {method:?}");
+        debug!("Successfully killed player with id: {id:?}");
 
         if self.players.is_empty() {
             if let Err(e) = self.wm.cleanup() {
@@ -274,7 +210,7 @@ impl Wallpaper {
             .map(|player| player.id)
             .collect::<Vec<crate::id::ID>>();
         for player_id in ids.iter() {
-            if let Err(e) = self.stop_player(PlayerFindMethod::PlayerID(*player_id)) {
+            if let Err(e) = self.stop_player(*player_id) {
                 error!("Could not clean player ({player_id:?}): {e}")
             }
         }

@@ -1,3 +1,7 @@
+pub fn sanitize(path: std::path::PathBuf) -> String {
+    path.as_path().display().to_string().replace("\\\\?\\", "")
+}
+
 // pub fn start_daemon() {
 //     // start daemon
 //     debug!("Starting the daemon. . .");

@@ -5,32 +5,28 @@ pub struct State<Inner> {
     pub inner: Inner,
 }
 
-impl State<crate::ui::BackgroundIdeaActivationState> {
+impl State<crate::ui::BackgroundPreviewActivationState> {
     pub fn set_not_sent(&mut self) {
         self.text = "Not yet sent".to_string(); // Initializing
         self.color = eframe::egui::Color32::RED;
 
-        self.inner = crate::ui::BackgroundIdeaActivationState::NotConnected
+        self.inner = crate::ui::BackgroundPreviewActivationState::NotConnected
     }
 
     pub fn set_connected(&mut self, id: crate::id::ID) {
         self.text = "Connected".to_string(); // Initializing
         self.color = eframe::egui::Color32::GREEN;
-        self.inner = crate::ui::BackgroundIdeaActivationState::Running { id }
+        self.inner = crate::ui::BackgroundPreviewActivationState::Running { id }
     }
 }
 
-impl Default for State<crate::ui::BackgroundIdeaActivationState> {
+impl Default for State<crate::ui::BackgroundPreviewActivationState> {
     fn default() -> Self {
         let mut o = Self {
-            // str_anim: crate::animations::StringAnimation::new(
-            //     0,
-            //     "..",
-            //     eframe::egui::Color32::TRANSPARENT,
-            // ),
+
             text: "Not yet synched".into(),
             color: eframe::egui::Color32::RED,
-            inner: crate::ui::BackgroundIdeaActivationState::NotConnected,
+            inner: crate::ui::BackgroundPreviewActivationState::NotConnected,
         };
         o.set_not_sent();
         o

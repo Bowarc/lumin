@@ -1,7 +1,7 @@
 <h1 align="center">
   <br>
   <!-- Add lumin img -->
-  <img src="" alt="lumin" width="200">
+  <img src="assets/logo2.png" alt="lumin" width="200">
   <br>
   Lumin
   <br>
