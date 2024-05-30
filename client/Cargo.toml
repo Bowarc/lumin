@@ -23,7 +23,7 @@ sysinfo = { version = "0.30.10", default-features = false }
 thiserror = "1.0.58"
 tokio = "1.37.0"
 tray-item = "0.10.0"
-winapi = { version = "0.3.9", features = ["winuser"] }
+winapi.workspace=true
 
 # eframe = "0.21.3"
 # egui-notify = "0.6.0"
